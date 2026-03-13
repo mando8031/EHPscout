@@ -13,24 +13,8 @@ function ScoutForm(){
   const [overall,setOverall]=useState(5);
   const [notes,setNotes]=useState("");
 
-  const submit=()=>{
-
-    const data={
-      team:state.team,
-      match:state.match,
-      accuracy,
-      auton,
-      movement,
-      intake,
-      climb,
-      overall,
-      notes
-    };
-
-    console.log(data);
-
-    alert("Scouting saved");
-  };
+  import { addDoc, collection } from "firebase/firestore";
+  import { db } from "../firebase";
 
   return(
 
