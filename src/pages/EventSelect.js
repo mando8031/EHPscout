@@ -1,31 +1,42 @@
-import { useEffect, useState } from "react";
-import { getEvents } from "../services/tbaService";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { getEvents } from "../services/tbaService"
 
-function EventSelect() {
+function EventSelect(){
 
-  const [events, setEvents] = useState([]);
-  const [selected, setSelected] = useState("");
+  const [events,setEvents]=useState([])
+  const [selected,setSelected]=useState("")
 
-  const navigate = useNavigate();
+  const navigate=useNavigate()
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    getEvents(2026).then(setEvents);
+    getEvents(new Date().getFullYear()).then(setEvents)
 
-  }, []);
+  },[])
 
-  return (
+  const loadEvent=()=>{
 
-    <div>
+    if(!selected) return
+    navigate(`/matches/${selected}`)
 
-      <h1>Select Event</h1>
+  }
 
-      <select onChange={(e)=>setSelected(e.target.value)}>
+  return(
+
+    <div className="max-w-xl">
+
+      <h1 className="text-3xl mb-6">
+        Select Event
+      </h1>
+
+      <select
+      className="bg-gray-800 p-3 rounded w-full mb-4"
+      onChange={(e)=>setSelected(e.target.value)}>
 
         <option>Select Event</option>
 
-        {events.map((event)=>(
+        {events.map(event=>(
           <option key={event.key} value={event.key}>
             {event.name}
           </option>
@@ -34,13 +45,17 @@ function EventSelect() {
       </select>
 
       <button
-        onClick={()=>navigate(`/matches/${selected}`)}
-      >
+      className="bg-blue-600 px-6 py-3 rounded"
+      onClick={loadEvent}>
+
         Load Matches
+
       </button>
 
     </div>
-  );
+
+  )
+
 }
 
-export default EventSelect;
+export default EventSelect
