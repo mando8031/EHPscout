@@ -1,5 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../firebase";
 
 function ScoutForm(){
 
@@ -13,8 +15,7 @@ function ScoutForm(){
   const [overall,setOverall]=useState(5);
   const [notes,setNotes]=useState("");
 
-  import { addDoc, collection } from "firebase/firestore";
-  import { db } from "../firebase";
+  
 
   return(
 
