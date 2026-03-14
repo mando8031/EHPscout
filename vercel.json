@@ -1,8 +1,16 @@
 {
-  "routes":[
-    {
-      "src":"/(.*)",
-      "dest":"/index.html"
-    }
-  ]
+"routes": [
+{
+"src": "^/static/(.*)",
+"dest": "/static/$1"
+},
+{
+"src": "^/(.*\.(js|css|png|jpg|jpeg|svg|ico|json))$",
+"dest": "/$1"
+},
+{
+"src": "/(.*)",
+"dest": "/index.html"
+}
+]
 }
