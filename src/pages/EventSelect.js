@@ -1,61 +1,46 @@
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { getEvents } from "../services/tbaService"
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getEvents } from "../services/tbaService";
 
-function EventSelect(){
+const EventSelect = () => {
+  const [events, setEvents] = useState([]);
+  const [selected, setSelected] = useState("");
+  const navigate = useNavigate();
 
-  const [events,setEvents]=useState([])
-  const [selected,setSelected]=useState("")
+  useEffect(() => {
+    getEvents(new Date().getFullYear()).then(setEvents);
+  }, []);
 
-  const navigate=useNavigate()
+  const loadEvent = () => {
+    if (!selected) return;
+    navigate(`/matches/${selected}`);
+  };
 
-  useEffect(()=>{
-
-    getEvents(new Date().getFullYear()).then(setEvents)
-
-  },[])
-
-  const loadEvent=()=>{
-
-    if(!selected) return
-    navigate(`/matches/${selected}`)
-
-  }
-
-  return(
-
+  return (
     <div className="max-w-xl">
-
-      <h1 className="text-3xl mb-6">
-        Select Event
-      </h1>
+      <h1 className="text-3xl mb-6">Select Event</h1>
 
       <select
-      className="bg-gray-800 p-3 rounded w-full mb-4"
-      onChange={(e)=>setSelected(e.target.value)}>
-
+        className="bg-gray-800 p-3 rounded w-full mb-4"
+        onChange={(e) => setSelected(e.target.value)}
+      >
         <option>Select Event</option>
 
-        {events.map(event=>(
+        {events.map((event) => (
           <option key={event.key} value={event.key}>
             {event.name}
           </option>
         ))}
-
       </select>
 
       <button
-      className="bg-blue-600 px-6 py-3 rounded"
-      onClick={loadEvent}>
-
+        className="bg-blue-600 px-6 py-3 rounded"
+        onClick={loadEvent}
+      >
         Load Matches
-
       </button>
-
     </div>
+  );
+};
 
-  )
-
-}
-
-export default EventSelect
+export default EventSelect;
