@@ -5,10 +5,16 @@ import { getEvents } from "../services/tbaService";
 const EventSelect = () => {
   const [events, setEvents] = useState([]);
   const [selected, setSelected] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    getEvents(new Date().getFullYear()).then(setEvents);
+    async function load() {
+      const data = await getEvents(new Date().getFullYear());
+      setEvents(data);
+    }
+
+    load();
   }, []);
 
   const loadEvent = () => {
@@ -24,7 +30,7 @@ const EventSelect = () => {
         className="bg-gray-800 p-3 rounded w-full mb-4"
         onChange={(e) => setSelected(e.target.value)}
       >
-        <option>Select Event</option>
+        <option value="">Select Event</option>
 
         {events.map((event) => (
           <option key={event.key} value={event.key}>
