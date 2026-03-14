@@ -1,57 +1,40 @@
-import { useEffect,useState } from "react"
-import { collection,getDocs } from "firebase/firestore"
-import { db } from "../firebase"
+import React, { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
 
-import { calculateTeamStats } from "../utils/statsCalculator"
+import { db } from "../firebase";
+import { calculateTeamStats } from "../utils/statsCalculator";
 
-function Picklist(){
+const Picklist = () => {
+  const [teams, setTeams] = useState([]);
 
-  const [teams,setTeams]=useState([])
+  useEffect(() => {
+    const load = async () => {
+      const snapshot = await getDocs(collection(db, "scouting"));
 
-  useEffect(()=>{
+      const data = snapshot.docs.map((doc) => doc.data());
 
-    async function load(){
+      const stats = calculateTeamStats(data);
 
-      const snapshot=await getDocs(collection(db,"scouting"))
+      setTeams(stats);
+    };
 
-      const data=snapshot.docs.map(doc=>doc.data())
+    load();
+  }, []);
 
-      const stats=calculateTeamStats(data)
-
-      stats.sort((a,b)=>b.overall-a.overall)
-
-      setTeams(stats)
-
-    }
-
-    load()
-
-  },[])
-
-  return(
-
+  return (
     <div>
+      <h1 className="text-3xl mb-6">Picklist</h1>
 
-      <h1 className="text-3xl mb-6">
-        Alliance Picklist
-      </h1>
-
-      {teams.map((team,i)=>(
-
+      {teams.map((team) => (
         <div
-        key={team.team}
-        className="bg-gray-800 p-3 rounded mb-2">
-
-          {i+1}. Team {team.team} — {team.overall.toFixed(2)}
-
+          key={team.team}
+          className="bg-gray-800 p-4 rounded mb-3"
+        >
+          Team {team.team} — {team.score}
         </div>
-
       ))}
-
     </div>
+  );
+};
 
-  )
-
-}
-
-export default Picklist
+export default Picklist;
