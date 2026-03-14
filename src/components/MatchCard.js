@@ -1,17 +1,17 @@
-function MatchCard({match,onClick}){
+function MatchCard({ match, onClick }) {
 
-  return(
+  const style = {
+    background: "#1f2937",
+    padding: "16px",
+    borderRadius: "8px",
+    cursor: "pointer"
+  };
 
-    <div
-    className="bg-gray-800 p-4 rounded cursor-pointer hover:bg-gray-700"
-    onClick={onClick}>
-
+  return (
+    <div style={style} onClick={onClick}>
       Match {match.match_number}
-
     </div>
-
-  )
-
+  );
 }
 
-export default MatchCard
+export default MatchCard;
