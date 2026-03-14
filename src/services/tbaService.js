@@ -1,29 +1,26 @@
-import axios from "axios"
+const BASE = "https://www.thebluealliance.com/api/v3"
 
-const API_KEY=process.env.REACT_APP_TBA_KEY
-
-const api=axios.create({
-
-  baseURL:"https://www.thebluealliance.com/api/v3",
-
-  headers:{
-    "X-TBA-Auth-Key":API_KEY
-  }
-
-})
-
-export const getEvents=async(year)=>{
-
-  const res=await api.get(`/events/${year}`)
-
-  return res.data
-
+const headers = {
+  "X-TBA-Auth-Key": process.env.REACT_APP_TBA_KEY
 }
 
-export const getMatches=async(eventKey)=>{
+async function safeFetch(url) {
+  const res = await fetch(url, { headers })
 
-  const res=await api.get(`/event/${eventKey}/matches/simple`)
+  const text = await res.text()
 
-  return res.data
+  try {
+    return JSON.parse(text)
+  } catch (err) {
+    console.error("TBA returned non-JSON:", text)
+    return []
+  }
+}
 
+export async function getEvents(year) {
+  return safeFetch(`${BASE}/events/${year}`)
+}
+
+export async function getMatches(eventKey) {
+  return safeFetch(`${BASE}/event/${eventKey}/matches`)
 }
