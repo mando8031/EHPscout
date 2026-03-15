@@ -1,20 +1,19 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase";
 
 const ScoutForm = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const { eventKey, matchNumber } = useParams();
 
-  const state = location.state;
-
+  const [team, setTeam] = useState("");
   const [accuracy, setAccuracy] = useState(5);
   const [auton, setAuton] = useState(5);
   const [movement, setMovement] = useState(2);
   const [notes, setNotes] = useState("");
 
-  if (!state) {
+  if (!eventKey || !matchNumber) {
     return (
       <div style={{ padding: "40px" }}>
         <h2>No match selected</h2>
@@ -27,8 +26,9 @@ const ScoutForm = () => {
 
   const submit = async () => {
     await addDoc(collection(db, "scouting"), {
-      team: state.team,
-      match: state.match,
+      event: eventKey,
+      team: team,
+      match: Number(matchNumber),
       accuracy: Number(accuracy),
       auton: Number(auton),
       movement: Number(movement),
@@ -43,8 +43,15 @@ const ScoutForm = () => {
   return (
     <div style={{ maxWidth: "600px", padding: "20px" }}>
       <h2>
-        Team {state.team} — Match {state.match}
+        Event {eventKey} — Match {matchNumber}
       </h2>
+
+      <label>Team Number</label>
+      <input
+        type="number"
+        value={team}
+        onChange={(e) => setTeam(e.target.value)}
+      />
 
       <label>Accuracy</label>
       <input
