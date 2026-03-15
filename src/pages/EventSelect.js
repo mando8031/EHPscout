@@ -3,99 +3,117 @@ import { useNavigate } from "react-router-dom";
 import { getEvents } from "../services/tbaService";
 
 const EventSelect = () => {
-  const [events, setEvents] = useState([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
 
+  const [events, setEvents] = useState([]);
+  const [selected, setSelected] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function load() {
-      const data = await getEvents(new Date().getFullYear());
 
-      if (Array.isArray(data)) {
-        // sort by start date
-        const sorted = data.sort(
-          (a, b) => new Date(a.start_date) - new Date(b.start_date)
-        );
+    const year = new Date().getFullYear();
 
-        setEvents(sorted);
+    async function loadEvents() {
+
+      console.log("Loading events for year:", year);
+
+      try {
+
+        const data = await getEvents(year);
+
+        console.log("TBA events response:", data);
+
+        if (Array.isArray(data)) {
+
+          console.log("Events loaded:", data.length);
+
+          setEvents(data);
+
+        } else {
+
+          console.error("Events response was not an array:", data);
+
+          setEvents([]);
+
+        }
+
+      } catch (err) {
+
+        console.error("Event loading failed:", err);
+
+        setEvents([]);
+
       }
+
     }
 
-    load();
+    loadEvents();
+
   }, []);
 
-  const today = new Date();
+  const openEvent = () => {
 
-  function getStatus(event) {
-    const start = new Date(event.start_date);
-    const end = new Date(event.end_date);
+    if (!selected) {
+      console.warn("No event selected");
+      return;
+    }
 
-    if (today < start) return "upcoming";
-    if (today > end) return "finished";
-    return "active";
+    console.log("Opening event:", selected);
+
+    navigate(`/matches/${selected}`);
+
+  };
+
+  if (events.length === 0) {
+
+    console.warn("Event list is empty");
+
+    return (
+      <div>
+        <h1 className="text-3xl mb-6">Select Event</h1>
+        <p>No events available.</p>
+      </div>
+    );
+
   }
 
-  const filteredEvents = events
-    .filter((event) =>
-      event.name.toLowerCase().includes(search.toLowerCase())
-    )
-    .filter((event) => {
-      if (filter === "all") return true;
-      return getStatus(event) === filter;
-    });
-
   return (
-    <div style={{ padding: "30px", maxWidth: "900px" }}>
-      <h1>Event Select</h1>
 
-      <input
-        type="text"
-        placeholder="Search events..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{
-          padding: "10px",
-          width: "100%",
-          marginBottom: "15px",
+    <div>
+
+      <h1 className="text-3xl mb-6">
+        Select Event
+      </h1>
+
+      <select
+        value={selected}
+        onChange={(e) => {
+          console.log("Event selected:", e.target.value);
+          setSelected(e.target.value);
         }}
-      />
+      >
 
-      <div style={{ marginBottom: "20px" }}>
-        <button onClick={() => setFilter("all")}>All</button>
-        <button onClick={() => setFilter("active")}>Active</button>
-        <button onClick={() => setFilter("upcoming")}>Upcoming</button>
-        <button onClick={() => setFilter("finished")}>Finished</button>
-      </div>
+        <option value="">
+          Choose an event
+        </option>
 
-      {filteredEvents.map((event) => {
-        const status = getStatus(event);
+        {events.map((event) => (
+          <option key={event.key} value={event.key}>
+            {event.name}
+          </option>
+        ))}
 
-        return (
-          <div
-            key={event.key}
-            style={{
-              padding: "12px",
-              marginBottom: "8px",
-              background: "#2c2c2c",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate(`/matches/${event.key}`)}
-          >
-            <div style={{ fontWeight: "bold" }}>{event.name}</div>
+      </select>
 
-            <div>
-              {event.start_date} → {event.end_date}
-            </div>
+      <br /><br />
 
-            <div>Status: {status}</div>
-          </div>
-        );
-      })}
+      <button onClick={openEvent}>
+        View Matches
+      </button>
+
     </div>
+
   );
+
 };
 
 export default EventSelect;
