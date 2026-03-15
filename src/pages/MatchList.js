@@ -5,9 +5,7 @@ import { getMatches } from "../services/tbaService";
 
 const MatchList = () => {
   const { eventKey } = useParams();
-
   const [matches, setMatches] = useState([]);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,7 +13,12 @@ const MatchList = () => {
 
     async function load() {
       const data = await getMatches(eventKey);
-      setMatches(data);
+
+      if (Array.isArray(data)) {
+        setMatches(data);
+      } else {
+        setMatches([]);
+      }
     }
 
     load();
@@ -24,6 +27,15 @@ const MatchList = () => {
   const openMatch = (match) => {
     navigate(`/scout/${eventKey}/${match.match_number}`);
   };
+
+  if (matches.length === 0) {
+    return (
+      <div>
+        <h1 className="text-3xl mb-6">Matches</h1>
+        <p>No matches available for this event yet.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
