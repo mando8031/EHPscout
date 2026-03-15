@@ -14,8 +14,16 @@ const MatchList = () => {
     async function load() {
       const data = await getMatches(eventKey);
 
+      console.log("TBA match response:", data);
+
       if (Array.isArray(data)) {
-        setMatches(data);
+
+        const qmMatches = data.filter(
+          m => m.comp_level === "qm"
+        );
+
+        setMatches(qmMatches);
+
       } else {
         setMatches([]);
       }
@@ -28,7 +36,7 @@ const MatchList = () => {
     navigate(`/scout/${eventKey}/${match.match_number}`);
   };
 
-  if (matches.length === 0) {
+  if (!matches || matches.length === 0) {
     return (
       <div>
         <h1 className="text-3xl mb-6">Matches</h1>
