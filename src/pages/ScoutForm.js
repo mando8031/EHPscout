@@ -22,7 +22,7 @@ const ScoutForm = () => {
     e.preventDefault();
 
     if (!team) {
-      alert("Please enter a team number");
+      alert("Please enter a team number.");
       return;
     }
 
@@ -40,23 +40,31 @@ const ScoutForm = () => {
         teleopScore: Number(teleopScore),
 
         endgame: endgame,
-
         notes: notes,
 
         created: serverTimestamp()
       };
 
-      await addDoc(collection(db, "scouting"), payload);
+      console.log("Saving scouting payload:", payload);
 
-      alert("Scouting data saved!");
+      // Timeout protection so the UI never freezes
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Database timeout")), 10000)
+      );
+
+      const save = addDoc(collection(db, "scouting"), payload);
+
+      await Promise.race([save, timeout]);
+
+      alert("Scouting data saved successfully!");
 
       navigate(-1);
 
     } catch (err) {
 
-      console.error("Error saving scouting data:", err);
+      console.error("Firestore save failed:", err);
 
-      alert("Failed to save scouting data");
+      alert("Failed to save scouting data. Check console for details.");
 
     }
 
@@ -80,10 +88,7 @@ const ScoutForm = () => {
 
       <form onSubmit={submitScout}>
 
-        {/* TEAM NUMBER */}
-
         <label>Team Number</label>
-
         <input
           type="number"
           value={team}
@@ -96,10 +101,7 @@ const ScoutForm = () => {
           }}
         />
 
-        {/* AUTO SCORE */}
-
         <label>Auto Score</label>
-
         <input
           type="number"
           value={autoScore}
@@ -112,10 +114,7 @@ const ScoutForm = () => {
           }}
         />
 
-        {/* TELEOP SCORE */}
-
         <label>Teleop Score</label>
-
         <input
           type="number"
           value={teleopScore}
@@ -128,10 +127,7 @@ const ScoutForm = () => {
           }}
         />
 
-        {/* ENDGAME */}
-
         <label>Endgame</label>
-
         <select
           value={endgame}
           onChange={(e) => setEndgame(e.target.value)}
@@ -142,21 +138,16 @@ const ScoutForm = () => {
             marginBottom: "20px"
           }}
         >
-
           <option value="none">None</option>
           <option value="park">Park</option>
           <option value="climb">Climb</option>
-
         </select>
 
-        {/* NOTES */}
-
         <label>Notes</label>
-
         <textarea
+          rows={4}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={4}
           style={{
             width: "100%",
             padding: "14px",
@@ -164,8 +155,6 @@ const ScoutForm = () => {
             marginBottom: "20px"
           }}
         />
-
-        {/* SUBMIT BUTTON */}
 
         <button
           type="submit"
@@ -177,13 +166,10 @@ const ScoutForm = () => {
             background: "#2ecc71",
             border: "none",
             borderRadius: "8px",
-            color: "white",
-            cursor: "pointer"
+            color: "white"
           }}
         >
-
           {submitting ? "Saving..." : "Submit Scouting"}
-
         </button>
 
       </form>
