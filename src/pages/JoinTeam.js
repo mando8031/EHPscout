@@ -1,41 +1,113 @@
-import React from "react";
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+
 import { auth, db } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
-import { useParams } from "react-router-dom";
+
+import {
+collection,
+query,
+where,
+getDocs,
+doc,
+updateDoc
+} from "firebase/firestore";
 
 const JoinTeam = () => {
 
 const { code } = useParams();
+const navigate = useNavigate();
 
-async function joinTeam() {
+const [loading,setLoading] = useState(false);
 
+async function joinTeam(){
 
-const uid = auth.currentUser.uid;
+setLoading(true);
 
-await setDoc(doc(db,"users",uid),{
-  role: "scout",
-  teamId: code
-});
+try{
 
-alert("Joined team!");
+  const q = query(
+    collection(db,"teams"),
+    where("joinCode","==",code)
+  );
 
+  const snapshot = await getDocs(q);
+
+  if(snapshot.empty){
+
+    alert("Team not found");
+
+    setLoading(false);
+    return;
+
+  }
+
+  const teamDoc = snapshot.docs[0];
+
+  const teamId = teamDoc.id;
+
+  const user = auth.currentUser;
+
+  if(!user){
+    alert("Not logged in");
+    return;
+  }
+
+  await updateDoc(
+    doc(db,"users",user.uid),
+    {
+      teamId: teamId
+    }
+  );
+
+  alert("Joined team!");
+
+  navigate("/dashboard");
+
+}catch(err){
+
+  console.error(err);
+  alert("Error joining team");
+
+}
+
+setLoading(false);
 
 }
 
 return (
 
 
-<div style={{textAlign:"center"}}>
+<div style={{maxWidth:"500px",margin:"auto"}}>
 
-  <h2>Join Scouting Team</h2>
+  <h1>Join Team</h1>
 
-  <p>Team Code: {code}</p>
+  <p>Join Code:</p>
 
-  <button onClick={joinTeam}>
-    Join
+  <div
+    style={{
+      background:"#333",
+      padding:"15px",
+      borderRadius:"8px",
+      textAlign:"center",
+      fontSize:"20px"
+    }}
+  >
+    {code}
+  </div>
+
+  <button
+    onClick={joinTeam}
+    style={{
+      marginTop:"20px",
+      padding:"12px",
+      width:"100%"
+    }}
+  >
+    {loading ? "Joining..." : "Join Team"}
   </button>
 
 </div>
+
 
 );
 
