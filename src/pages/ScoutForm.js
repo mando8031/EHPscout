@@ -10,19 +10,21 @@ const ScoutForm = () => {
   const navigate = useNavigate();
 
   const [team, setTeam] = useState("");
-  const [autoScore, setAutoScore] = useState(0);
-  const [teleopScore, setTeleopScore] = useState(0);
-  const [endgame, setEndgame] = useState("none");
-  const [notes, setNotes] = useState("");
+
+  const [auton, setAuton] = useState(5);
+  const [accuracy, setAccuracy] = useState(5);
+
+  const [climb, setClimb] = useState("none");
+  const [movement, setMovement] = useState("1");
+  const [intake, setIntake] = useState("none");
 
   const [submitting, setSubmitting] = useState(false);
 
   async function submitScout(e) {
-
     e.preventDefault();
 
     if (!team) {
-      alert("Please enter a team number.");
+      alert("Enter team number");
       return;
     }
 
@@ -31,151 +33,198 @@ const ScoutForm = () => {
     try {
 
       const payload = {
-        eventKey: eventKey,
+        eventKey,
         matchNumber: Number(matchNumber),
 
         team: Number(team),
 
-        autoScore: Number(autoScore),
-        teleopScore: Number(teleopScore),
-
-        endgame: endgame,
-        notes: notes,
+        auton: Number(auton),
+        climb,
+        movement,
+        intake,
+        accuracy: Number(accuracy),
 
         created: serverTimestamp()
       };
 
-      console.log("Saving scouting payload:", payload);
+      await addDoc(collection(db, "scouting"), payload);
 
-      // Timeout protection so the UI never freezes
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Database timeout")), 10000)
-      );
-
-      const save = addDoc(collection(db, "scouting"), payload);
-
-      await Promise.race([save, timeout]);
-
-      alert("Scouting data saved successfully!");
+      alert("Saved!");
 
       navigate(-1);
 
     } catch (err) {
 
       console.error("Firestore save failed:", err);
-
-      alert("Failed to save scouting data. Check console for details.");
+      alert("Failed to save scouting data");
 
     }
 
     setSubmitting(false);
-
   }
+
+  const buttonStyle = (selected) => ({
+    flex: 1,
+    padding: "18px",
+    fontSize: "18px",
+    borderRadius: "10px",
+    border: "none",
+    background: selected ? "#3498db" : "#ecf0f1",
+    color: selected ? "white" : "black"
+  });
 
   return (
 
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "auto",
-        padding: "20px"
-      }}
-    >
+    <div style={{
+      maxWidth: "500px",
+      margin: "auto",
+      padding: "20px"
+    }}>
 
-      <h1 style={{ marginBottom: "20px" }}>
-        Scout Match {matchNumber}
+      <h1 style={{ fontSize: "28px", marginBottom: "20px" }}>
+        Match {matchNumber}
       </h1>
 
       <form onSubmit={submitScout}>
 
-        <label>Team Number</label>
+        {/* TEAM */}
+
+        <label style={{ fontSize: "20px" }}>Team Number</label>
+
         <input
           type="number"
           value={team}
           onChange={(e) => setTeam(e.target.value)}
           style={{
             width: "100%",
-            padding: "14px",
-            fontSize: "18px",
-            marginBottom: "20px"
+            padding: "16px",
+            fontSize: "20px",
+            marginBottom: "25px"
           }}
         />
 
-        <label>Auto Score</label>
+        {/* AUTON */}
+
+        <h2>Auton</h2>
+
+        <div style={{ textAlign: "center", fontSize: "24px", marginBottom: "10px" }}>
+          {auton}
+        </div>
+
         <input
-          type="number"
-          value={autoScore}
-          onChange={(e) => setAutoScore(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "14px",
-            fontSize: "18px",
-            marginBottom: "20px"
-          }}
+          type="range"
+          min="1"
+          max="10"
+          step="1"
+          value={auton}
+          onChange={(e) => setAuton(e.target.value)}
+          style={{ width: "100%", marginBottom: "30px" }}
         />
 
-        <label>Teleop Score</label>
+        {/* CLIMB */}
+
+        <h2>Climb</h2>
+
+        <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
+
+          {["none", "L1", "L2", "L3"].map((c) => (
+
+            <button
+              type="button"
+              key={c}
+              style={buttonStyle(climb === c)}
+              onClick={() => setClimb(c)}
+            >
+              {c}
+            </button>
+
+          ))}
+
+        </div>
+
+        {/* MOVEMENT */}
+
+        <h2>Movement</h2>
+
+        <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
+
+          {["1", "2", "3"].map((m) => (
+
+            <button
+              type="button"
+              key={m}
+              style={buttonStyle(movement === m)}
+              onClick={() => setMovement(m)}
+            >
+              {m}
+            </button>
+
+          ))}
+
+        </div>
+
+        {/* INTAKE */}
+
+        <h2>Intake</h2>
+
+        <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
+
+          {["none", "1", "2", "3"].map((i) => (
+
+            <button
+              type="button"
+              key={i}
+              style={buttonStyle(intake === i)}
+              onClick={() => setIntake(i)}
+            >
+              {i}
+            </button>
+
+          ))}
+
+        </div>
+
+        {/* ACCURACY */}
+
+        <h2>Accuracy</h2>
+
+        <div style={{ textAlign: "center", fontSize: "24px", marginBottom: "10px" }}>
+          {accuracy}
+        </div>
+
         <input
-          type="number"
-          value={teleopScore}
-          onChange={(e) => setTeleopScore(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "14px",
-            fontSize: "18px",
-            marginBottom: "20px"
-          }}
+          type="range"
+          min="1"
+          max="10"
+          step="1"
+          value={accuracy}
+          onChange={(e) => setAccuracy(e.target.value)}
+          style={{ width: "100%", marginBottom: "40px" }}
         />
 
-        <label>Endgame</label>
-        <select
-          value={endgame}
-          onChange={(e) => setEndgame(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "14px",
-            fontSize: "18px",
-            marginBottom: "20px"
-          }}
-        >
-          <option value="none">None</option>
-          <option value="park">Park</option>
-          <option value="climb">Climb</option>
-        </select>
-
-        <label>Notes</label>
-        <textarea
-          rows={4}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "14px",
-            fontSize: "16px",
-            marginBottom: "20px"
-          }}
-        />
+        {/* SUBMIT */}
 
         <button
           type="submit"
           disabled={submitting}
           style={{
             width: "100%",
-            padding: "16px",
-            fontSize: "20px",
+            padding: "20px",
+            fontSize: "22px",
             background: "#2ecc71",
             border: "none",
-            borderRadius: "8px",
+            borderRadius: "12px",
             color: "white"
           }}
         >
+
           {submitting ? "Saving..." : "Submit Scouting"}
+
         </button>
 
       </form>
 
     </div>
-
   );
 
 };
