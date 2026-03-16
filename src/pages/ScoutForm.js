@@ -1,22 +1,21 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 const ScoutForm = () => {
 
-  const { eventKey, matchNumber } = useParams();
   const navigate = useNavigate();
 
   const [team, setTeam] = useState("");
+  const [matchNumber, setMatchNumber] = useState("");
 
-  const [auton, setAuton] = useState(5);
-  const [accuracy, setAccuracy] = useState(5);
+  const [auton, setAuton] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
+  const [movement, setMovement] = useState(0);
 
   const [climb, setClimb] = useState("none");
-  const [movement, setMovement] = useState("1");
-  const [intake, setIntake] = useState("none");
+  const [intake, setIntake] = useState("slow");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,199 +31,152 @@ const ScoutForm = () => {
 
     try {
 
+      // Convert categorical values into numbers
+      const climbScore =
+        climb === "high" ? 10 :
+        climb === "mid" ? 6 :
+        climb === "low" ? 3 : 0;
+
+      const intakeScore =
+        intake === "fast" ? 5 :
+        intake === "slow" ? 3 : 0;
+
+      const movementScore = Number(movement);
+
+      // Calculate overall score
+      const overall =
+        Number(auton) * 2 +
+        Number(accuracy) * 2 +
+        climbScore +
+        intakeScore +
+        movementScore;
+
       const payload = {
-        eventKey,
+        team: Number(team),
         matchNumber: Number(matchNumber),
 
-        team: Number(team),
-
         auton: Number(auton),
-        climb,
-        movement,
-        intake,
         accuracy: Number(accuracy),
+        movement: movementScore,
+
+        climb,
+        intake,
+
+        overall,
 
         created: serverTimestamp()
       };
 
       await addDoc(collection(db, "scouting"), payload);
 
-      alert("Saved!");
+      alert("Scouting data saved!");
 
-      navigate(-1);
+      navigate("/");
 
     } catch (err) {
 
-      console.error("Firestore save failed:", err);
-      alert("Failed to save scouting data");
+      console.error(err);
+      alert("Error saving scouting data");
 
     }
 
     setSubmitting(false);
   }
 
-  const buttonStyle = (selected) => ({
-    flex: 1,
-    padding: "18px",
-    fontSize: "18px",
-    borderRadius: "10px",
-    border: "none",
-    background: selected ? "#3498db" : "#ecf0f1",
-    color: selected ? "white" : "black"
-  });
-
   return (
 
-    <div style={{
-      maxWidth: "500px",
-      margin: "auto",
-      padding: "20px"
-    }}>
+    <div className="p-6">
 
-      <h1 style={{ fontSize: "28px", marginBottom: "20px" }}>
-        Match {matchNumber}
+      <h1 className="text-2xl font-bold mb-6">
+        Scout Match
       </h1>
 
-      <form onSubmit={submitScout}>
-
-        {/* TEAM */}
-
-        <label style={{ fontSize: "20px" }}>Team Number</label>
+      <form onSubmit={submitScout} className="space-y-4">
 
         <input
           type="number"
+          placeholder="Team Number"
           value={team}
-          onChange={(e) => setTeam(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "16px",
-            fontSize: "20px",
-            marginBottom: "25px"
-          }}
+          onChange={(e)=>setTeam(e.target.value)}
+          className="border p-2 w-full"
         />
-
-        {/* AUTON */}
-
-        <h2>Auton</h2>
-
-        <div style={{ textAlign: "center", fontSize: "24px", marginBottom: "10px" }}>
-          {auton}
-        </div>
 
         <input
-          type="range"
-          min="1"
-          max="10"
-          step="1"
-          value={auton}
-          onChange={(e) => setAuton(e.target.value)}
-          style={{ width: "100%", marginBottom: "30px" }}
+          type="number"
+          placeholder="Match Number"
+          value={matchNumber}
+          onChange={(e)=>setMatchNumber(e.target.value)}
+          className="border p-2 w-full"
         />
 
-        {/* CLIMB */}
-
-        <h2>Climb</h2>
-
-        <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
-
-          {["none", "L1", "L2", "L3"].map((c) => (
-
-            <button
-              type="button"
-              key={c}
-              style={buttonStyle(climb === c)}
-              onClick={() => setClimb(c)}
-            >
-              {c}
-            </button>
-
-          ))}
-
+        <div>
+          <label>Autonomous Score</label>
+          <input
+            type="number"
+            value={auton}
+            onChange={(e)=>setAuton(e.target.value)}
+            className="border p-2 w-full"
+          />
         </div>
 
-        {/* MOVEMENT */}
-
-        <h2>Movement</h2>
-
-        <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
-
-          {["1", "2", "3"].map((m) => (
-
-            <button
-              type="button"
-              key={m}
-              style={buttonStyle(movement === m)}
-              onClick={() => setMovement(m)}
-            >
-              {m}
-            </button>
-
-          ))}
-
+        <div>
+          <label>Shooting Accuracy</label>
+          <input
+            type="number"
+            value={accuracy}
+            onChange={(e)=>setAccuracy(e.target.value)}
+            className="border p-2 w-full"
+          />
         </div>
 
-        {/* INTAKE */}
-
-        <h2>Intake</h2>
-
-        <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
-
-          {["none", "1", "2", "3"].map((i) => (
-
-            <button
-              type="button"
-              key={i}
-              style={buttonStyle(intake === i)}
-              onClick={() => setIntake(i)}
-            >
-              {i}
-            </button>
-
-          ))}
-
+        <div>
+          <label>Robot Movement</label>
+          <input
+            type="number"
+            value={movement}
+            onChange={(e)=>setMovement(e.target.value)}
+            className="border p-2 w-full"
+          />
         </div>
 
-        {/* ACCURACY */}
-
-        <h2>Accuracy</h2>
-
-        <div style={{ textAlign: "center", fontSize: "24px", marginBottom: "10px" }}>
-          {accuracy}
+        <div>
+          <label>Climb Level</label>
+          <select
+            value={climb}
+            onChange={(e)=>setClimb(e.target.value)}
+            className="border p-2 w-full"
+          >
+            <option value="none">None</option>
+            <option value="low">Low</option>
+            <option value="mid">Mid</option>
+            <option value="high">High</option>
+          </select>
         </div>
 
-        <input
-          type="range"
-          min="1"
-          max="10"
-          step="1"
-          value={accuracy}
-          onChange={(e) => setAccuracy(e.target.value)}
-          style={{ width: "100%", marginBottom: "40px" }}
-        />
-
-        {/* SUBMIT */}
+        <div>
+          <label>Intake Speed</label>
+          <select
+            value={intake}
+            onChange={(e)=>setIntake(e.target.value)}
+            className="border p-2 w-full"
+          >
+            <option value="slow">Slow</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
 
         <button
           type="submit"
           disabled={submitting}
-          style={{
-            width: "100%",
-            padding: "20px",
-            fontSize: "22px",
-            background: "#2ecc71",
-            border: "none",
-            borderRadius: "12px",
-            color: "white"
-          }}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
         >
-
-          {submitting ? "Saving..." : "Submit Scouting"}
-
+          {submitting ? "Saving..." : "Submit Scout Data"}
         </button>
 
       </form>
 
     </div>
+
   );
 
 };
