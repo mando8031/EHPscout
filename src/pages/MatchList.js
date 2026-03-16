@@ -14,16 +14,8 @@ const MatchList = () => {
     async function load() {
       const data = await getMatches(eventKey);
 
-      console.log("TBA match response:", data);
-
       if (Array.isArray(data)) {
-
-        const qmMatches = data.filter(
-          m => m.comp_level === "qm"
-        );
-
-        setMatches(qmMatches);
-
+        setMatches(data);
       } else {
         setMatches([]);
       }
@@ -36,7 +28,39 @@ const MatchList = () => {
     navigate(`/scout/${eventKey}/${match.match_number}`);
   };
 
-  if (!matches || matches.length === 0) {
+  // ---- SORT MATCHES ----
+
+  const qualificationMatches = matches
+    .filter((m) => m.comp_level === "qm")
+    .sort((a, b) => a.match_number - b.match_number);
+
+  const playoffMatches = matches
+    .filter((m) => m.comp_level !== "qm")
+    .sort((a, b) => a.match_number - b.match_number);
+
+  // ---- MATCH NAME BUILDER ----
+
+  function getMatchName(match) {
+    if (match.comp_level === "qm") {
+      return `Qualification Match ${match.match_number}`;
+    }
+
+    if (match.comp_level === "qf") {
+      return `Quarterfinal ${match.set_number} Match ${match.match_number}`;
+    }
+
+    if (match.comp_level === "sf") {
+      return `Semifinal ${match.set_number} Match ${match.match_number}`;
+    }
+
+    if (match.comp_level === "f") {
+      return `Final ${match.match_number}`;
+    }
+
+    return `Match ${match.match_number}`;
+  }
+
+  if (matches.length === 0) {
     return (
       <div>
         <h1 className="text-3xl mb-6">Matches</h1>
@@ -47,17 +71,49 @@ const MatchList = () => {
 
   return (
     <div>
+
       <h1 className="text-3xl mb-6">Matches</h1>
 
-      <div className="grid gap-4">
-        {matches.map((match) => (
-          <MatchCard
-            key={match.key}
-            match={match}
-            onClick={() => openMatch(match)}
-          />
-        ))}
-      </div>
+      {/* Qualification Matches */}
+
+      {qualificationMatches.length > 0 && (
+        <>
+          <h2 className="text-2xl mb-4">Qualification Matches</h2>
+
+          <div className="grid gap-4 mb-8">
+            {qualificationMatches.map((match) => (
+              <button
+                key={match.key}
+                onClick={() => openMatch(match)}
+                className="p-4 bg-gray-700 rounded"
+              >
+                {getMatchName(match)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Playoff Matches */}
+
+      {playoffMatches.length > 0 && (
+        <>
+          <h2 className="text-2xl mb-4">Playoff Matches</h2>
+
+          <div className="grid gap-4">
+            {playoffMatches.map((match) => (
+              <button
+                key={match.key}
+                onClick={() => openMatch(match)}
+                className="p-4 bg-gray-700 rounded"
+              >
+                {getMatchName(match)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
     </div>
   );
 };
