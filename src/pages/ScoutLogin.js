@@ -1,24 +1,32 @@
 import React, { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
-const ScoutLogin = ({ onLogin }) => {
+const ScoutLogin = () => {
 
-const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+
 const navigate = useNavigate();
 
-function handleSubmit(e) {
+async function login(e) {
 
 
 e.preventDefault();
 
-if (!name) {
-  alert("Enter scout name");
-  return;
+try {
+
+  await signInWithEmailAndPassword(auth, email, password);
+
+  navigate("/");
+
+} catch (err) {
+
+  alert("Login failed");
+  console.error(err);
+
 }
-
-onLogin(name);
-
-navigate("/");
 
 
 }
@@ -32,40 +40,37 @@ return (
   padding: "40px"
 }}>
 
-  <h1 style={{ fontSize: "30px", marginBottom: "20px" }}>
-    Scout Login
-  </h1>
+  <h1>Scout Login</h1>
 
-  <form onSubmit={handleSubmit}>
+  <form onSubmit={login}>
 
     <input
-      type="text"
-      placeholder="Scout Name"
-      value={name}
-      onChange={(e)=>setName(e.target.value)}
-      style={{
-        width: "100%",
-        padding: "15px",
-        fontSize: "18px",
-        marginBottom: "20px"
-      }}
+      type="email"
+      placeholder="Email"
+      value={email}
+      onChange={(e)=>setEmail(e.target.value)}
+      style={{ width: "100%", padding: "12px", marginBottom: "10px" }}
+    />
+
+    <input
+      type="password"
+      placeholder="Password"
+      value={password}
+      onChange={(e)=>setPassword(e.target.value)}
+      style={{ width: "100%", padding: "12px", marginBottom: "20px" }}
     />
 
     <button
       type="submit"
       style={{
         width: "100%",
-        padding: "15px",
-        fontSize: "18px",
+        padding: "12px",
         background: "#3498db",
         color: "white",
-        border: "none",
-        borderRadius: "10px"
+        border: "none"
       }}
     >
-
-      Start Scouting
-
+      Login
     </button>
 
   </form>
