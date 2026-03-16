@@ -1,48 +1,26 @@
-const BASE_URL = "https://www.thebluealliance.com/api/v3";
-
-const API_KEY = process.env.REACT_APP_TBA_KEY;
-
-// show whether the key exists
-console.log("TBA API KEY VALUE:", API_KEY);
+const BASE = "https://www.thebluealliance.com/api/v3"
 
 const headers = {
-  "X-TBA-Auth-Key": API_KEY
-};
+  "X-TBA-Auth-Key": process.env.REACT_APP_TBA_KEY
+}
 
 async function safeFetch(url) {
+  const res = await fetch(url, { headers })
 
-  console.log("Fetching URL:", url);
+  const text = await res.text()
 
   try {
-
-    const response = await fetch(url, { headers });
-
-    console.log("HTTP Status:", response.status);
-
-    const data = await response.json();
-
-    console.log("Full API response:", data);
-
-    return data;
-
-  } catch (error) {
-
-    console.error("Fetch failed:", error);
-
-    return [];
-
+    return JSON.parse(text)
+  } catch (err) {
+    console.error("TBA returned non-JSON:", text)
+    return []
   }
-
 }
 
 export async function getEvents(year) {
-
-  return safeFetch(`${BASE_URL}/events/${year}/simple`);
-
+  return safeFetch(`${BASE}/events/${year}`)
 }
 
 export async function getMatches(eventKey) {
-
-  return safeFetch(`${BASE_URL}/event/${eventKey}/matches`);
-
+  return safeFetch(`${BASE}/event/${eventKey}/matches`)
 }
