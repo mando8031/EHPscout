@@ -20,11 +20,8 @@ const [intake, setIntake] = useState("slow");
 const [submitting, setSubmitting] = useState(false);
 
 async function submitScout(e) {
+e.preventDefault();
 
-```
-if (e && e.preventDefault) {
-  e.preventDefault();
-}
 
 if (!team) {
   alert("Enter team number");
@@ -77,19 +74,19 @@ try {
 
 } catch (err) {
 
-  console.error("Save error:", err);
+  console.error(err);
   alert("Error saving scouting data");
 
 }
 
 setSubmitting(false);
-```
+
 
 }
 
 return (
 
-```
+
 <div className="p-6">
 
   <h1 className="text-2xl font-bold mb-6">
@@ -181,7 +178,7 @@ return (
   </form>
 
 </div>
-```
+
 
 );
 
