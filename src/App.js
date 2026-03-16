@@ -70,7 +70,8 @@ return (
 
   <div style={{minHeight:"100vh",background:"#111",color:"white"}}>
 
-    {user && <Navbar role={role}/>}
+    {/* Navbar only after joining a team */}
+    {user && teamId && <Navbar role={role}/>}
 
     <div style={{padding:"20px"}}>
 
