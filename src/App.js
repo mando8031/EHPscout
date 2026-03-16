@@ -17,6 +17,7 @@ import Picklist from "./pages/Picklist";
 import TeamSetup from "./pages/TeamSetup";
 import CreateTeam from "./pages/CreateTeam";
 import JoinTeam from "./pages/JoinTeam";
+import AccountSettings from "./pages/AccountSettings";
 
 function App() {
 
@@ -27,13 +28,12 @@ useEffect(() => {
 
 
 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-
   setUser(currentUser);
   setLoading(false);
-
 });
 
 return () => unsubscribe();
+
 
 }, []);
 
@@ -57,25 +57,25 @@ return (
         {/* Login */}
         <Route path="/login" element={<ScoutLogin />} />
 
-        {/* Team setup (create or join team) */}
+        {/* Team setup */}
         <Route
           path="/team"
           element={user ? <TeamSetup /> : <Navigate to="/login" />}
         />
 
-        {/* Admin create team */}
+        {/* Create team */}
         <Route
           path="/create-team"
           element={user ? <CreateTeam /> : <Navigate to="/login" />}
         />
 
-        {/* Join team from QR */}
+        {/* Join team via QR */}
         <Route
           path="/join/:code"
           element={user ? <JoinTeam /> : <Navigate to="/login" />}
         />
 
-        {/* Event selection */}
+        {/* Event select */}
         <Route
           path="/"
           element={user ? <EventSelect /> : <Navigate to="/login" />}
@@ -87,7 +87,7 @@ return (
           element={user ? <MatchList /> : <Navigate to="/login" />}
         />
 
-        {/* Scout match */}
+        {/* Scout form */}
         <Route
           path="/scout/:eventKey/:matchNumber"
           element={user ? <ScoutForm /> : <Navigate to="/login" />}
@@ -99,16 +99,22 @@ return (
           element={user ? <RobotSelect /> : <Navigate to="/login" />}
         />
 
-        {/* Rankings dashboard */}
+        {/* Dashboard */}
         <Route
           path="/dashboard"
           element={user ? <Dashboard /> : <Navigate to="/login" />}
         />
 
-        {/* Alliance picklist */}
+        {/* Picklist */}
         <Route
           path="/picklist"
           element={user ? <Picklist /> : <Navigate to="/login" />}
+        />
+
+        {/* Account settings */}
+        <Route
+          path="/account"
+          element={user ? <AccountSettings /> : <Navigate to="/login" />}
         />
 
       </Routes>
@@ -118,7 +124,6 @@ return (
   </div>
 
 </BrowserRouter>
-
 
 );
 
