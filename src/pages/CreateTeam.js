@@ -1,42 +1,80 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import { auth, db } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
-import QRCode from "react-qr-code";
+
+import {
+collection,
+addDoc,
+doc,
+updateDoc
+} from "firebase/firestore";
+
+function generateCode(){
+return Math.random().toString(36).substring(2,8).toUpperCase();
+}
 
 const CreateTeam = () => {
 
-const [teamName, setTeamName] = useState("");
-const [inviteCode, setInviteCode] = useState("");
+const navigate = useNavigate();
 
-function generateCode() {
-const code = Math.random().toString(36).substring(2,8);
-setInviteCode(code);
-}
+const [teamName,setTeamName] = useState("");
+const [creating,setCreating] = useState(false);
 
-async function createTeam() {
+async function createTeam(e){
 
 
-if (!teamName) {
-  alert("Enter team name");
+e.preventDefault();
+
+if(!teamName){
+  alert("Enter a team name");
   return;
 }
 
-const uid = auth.currentUser.uid;
+const user = auth.currentUser;
 
-const code = inviteCode || Math.random().toString(36).substring(2,8);
+if(!user){
+  alert("Not logged in");
+  return;
+}
 
-await setDoc(doc(db,"teams",code),{
-  name: teamName,
-  adminUid: uid,
-  inviteCode: code
-});
+setCreating(true);
 
-await setDoc(doc(db,"users",uid),{
-  role: "admin",
-  teamId: code
-});
+try{
 
-setInviteCode(code);
+  const joinCode = generateCode();
+
+  const teamRef = await addDoc(
+    collection(db,"teams"),
+    {
+      name: teamName,
+      joinCode: joinCode,
+      createdBy: user.uid
+    }
+  );
+
+  const teamId = teamRef.id;
+
+  await updateDoc(
+    doc(db,"users",user.uid),
+    {
+      role: "admin",
+      teamId: teamId
+    }
+  );
+
+  alert("Team created!");
+
+  navigate("/dashboard");
+
+}catch(err){
+
+  console.error(err);
+  alert("Error creating team");
+
+}
+
+setCreating(false);
 
 
 }
@@ -46,35 +84,31 @@ return (
 
 <div style={{maxWidth:"500px",margin:"auto"}}>
 
-  <h2>Create Scouting Team</h2>
+  <h1>Create Team</h1>
 
-  <input
-    placeholder="Team Name"
-    value={teamName}
-    onChange={(e)=>setTeamName(e.target.value)}
-    style={{width:"100%",padding:"10px"}}
-  />
+  <form onSubmit={createTeam}>
 
-  <button
-    onClick={createTeam}
-    style={{marginTop:"10px"}}
-  >
-    Create Team
-  </button>
+    <input
+      placeholder="Team Name"
+      value={teamName}
+      onChange={(e)=>setTeamName(e.target.value)}
+      style={{
+        width:"100%",
+        padding:"10px",
+        marginBottom:"15px"
+      }}
+    />
 
-  {inviteCode && (
+    <button
+      style={{
+        width:"100%",
+        padding:"12px"
+      }}
+    >
+      {creating ? "Creating..." : "Create Team"}
+    </button>
 
-    <div style={{marginTop:"30px",textAlign:"center"}}>
-
-      <h3>Scout Join QR</h3>
-
-      <QRCode value={inviteCode} />
-
-      <p>Code: {inviteCode}</p>
-
-    </div>
-
-  )}
+  </form>
 
 </div>
 
