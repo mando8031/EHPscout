@@ -1,5 +1,7 @@
-console.log("APP LOADED");import React from "react";
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Navbar from "./components/Navbar";
 
 import EventSelect from "./pages/EventSelect";
 import MatchList from "./pages/MatchList";
@@ -11,23 +13,35 @@ import RobotSelect from "./pages/RobotSelect";
 function App() {
   return (
     <BrowserRouter>
-      <div style={{ padding: "20px", color: "white", background: "#111", minHeight: "100vh" }}>
-        <Routes>
 
-          <Route path="/" element={<EventSelect />} />
+      <div style={{ minHeight: "100vh", background: "#111", color: "white" }}>
 
-          <Route path="/robots" element={<RobotSelect />} />
+        {/* Top Navigation */}
+        <Navbar />
 
-          <Route path="/matches/:eventKey" element={<MatchList />} />
+        {/* Page Content */}
+        <div style={{ padding: "20px" }}>
 
-          <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
+          <Routes>
 
-          <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/" element={<EventSelect />} />
 
-          <Route path="/picklist" element={<Picklist />} />
+            <Route path="/robots" element={<RobotSelect />} />
 
-        </Routes>
+            <Route path="/matches/:eventKey" element={<MatchList />} />
+
+            <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
+
+            <Route path="/dashboard" element={<Dashboard />} />
+
+            <Route path="/picklist" element={<Picklist />} />
+
+          </Routes>
+
+        </div>
+
       </div>
+
     </BrowserRouter>
   );
 }
