@@ -2,42 +2,52 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
-import StatChart from "../components/StatChart";
-import { calculateTeamStats } from "../utils/statsCalculator";
-
 const Dashboard = () => {
 
-  const [stats, setStats] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [topTeams, setTopTeams] = useState([]);
-  const [bestStats, setBestStats] = useState({});
+  useEffect(()=>{
 
-  useEffect(() => {
-
-    async function load() {
+    async function loadData(){
 
       try {
 
-        const snapshot = await getDocs(collection(db, "scouting"));
+        const snapshot = await getDocs(collection(db,"scouting"));
+
         const data = snapshot.docs.map(doc => doc.data());
 
-        const calculated = calculateTeamStats(data);
+        const teamMap = {};
 
-        setStats(calculated);
+        data.forEach(entry=>{
 
-        const sorted = [...calculated].sort((a,b)=>b.overall-a.overall);
-        setTopTeams(sorted.slice(0,5));
+          if(!teamMap[entry.team]){
+            teamMap[entry.team] = {
+              team: entry.team,
+              matches: 0,
+              totalScore: 0
+            };
+          }
 
-        setBestStats({
-          auton: sorted.reduce((a,b)=>a.auton>b.auton?a:b),
-          climb: sorted.reduce((a,b)=>a.climb>b.climb?a:b),
-          accuracy: sorted.reduce((a,b)=>a.accuracy>b.accuracy?a:b)
+          teamMap[entry.team].matches += 1;
+          teamMap[entry.team].totalScore += entry.overall;
+
         });
 
-      } catch (err) {
+        const teamStats = Object.values(teamMap).map(team=>({
 
-        console.error("Dashboard load error:", err);
+          team: team.team,
+          overall: team.totalScore / team.matches
+
+        }));
+
+        teamStats.sort((a,b)=>b.overall - a.overall);
+
+        setTeams(teamStats);
+
+      } catch(err){
+
+        console.error("Error loading scouting data",err);
 
       }
 
@@ -45,61 +55,53 @@ const Dashboard = () => {
 
     }
 
-    load();
+    loadData();
 
-  }, []);
+  },[]);
 
-  if (loading) {
+  if(loading){
     return (
-      <div>
-        <h1 className="text-3xl mb-6">Team Statistics</h1>
-        <p>Loading scouting data...</p>
+      <div className="p-6">
+        <h1 className="text-2xl">Loading rankings...</h1>
       </div>
     );
   }
 
   return (
-    <div>
 
-      <h1 className="text-3xl mb-6">Team Statistics Dashboard</h1>
+    <div className="p-6">
 
-      {/* Top Teams */}
-      <div className="mb-10">
-        <h2 className="text-xl font-bold mb-3">Top Teams</h2>
-        <ul>
-          {topTeams.map((t,i)=>(
-            <li key={t.team}>
-              #{i+1} Team {t.team} — {t.overall.toFixed(2)}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <h1 className="text-3xl font-bold mb-6">
+        Team Rankings
+      </h1>
 
-      {/* Best Categories */}
-      <div className="mb-10 grid grid-cols-3 gap-6">
+      <div className="space-y-3">
 
-        <div className="p-4 bg-gray-100 rounded">
-          <h3 className="font-bold">Best Auton</h3>
-          <p>Team {bestStats.auton?.team}</p>
-        </div>
+        {teams.map((team,index)=>(
 
-        <div className="p-4 bg-gray-100 rounded">
-          <h3 className="font-bold">Best Climb</h3>
-          <p>Team {bestStats.climb?.team}</p>
-        </div>
+          <div
+            key={team.team}
+            className="p-4 bg-gray-100 rounded flex justify-between items-center"
+          >
 
-        <div className="p-4 bg-gray-100 rounded">
-          <h3 className="font-bold">Best Accuracy</h3>
-          <p>Team {bestStats.accuracy?.team}</p>
-        </div>
+            <div className="font-bold">
+              #{index+1} Team {team.team}
+            </div>
+
+            <div>
+              Score: {team.overall.toFixed(2)}
+            </div>
+
+          </div>
+
+        ))}
 
       </div>
-
-      {/* Chart */}
-      <StatChart data={stats} />
 
     </div>
+
   );
+
 };
 
 export default Dashboard;
