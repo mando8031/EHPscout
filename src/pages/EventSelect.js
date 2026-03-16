@@ -4,7 +4,7 @@ import { getEvents } from "../services/tbaService";
 
 const EventSelect = () => {
 
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(null); // null = not loaded yet
   const [selected, setSelected] = useState("");
   const navigate = useNavigate();
 
@@ -30,8 +30,7 @@ const EventSelect = () => {
 
         } else {
 
-          console.error("Events response was not an array:", data);
-
+          console.warn("Unexpected event response:", data);
           setEvents([]);
 
         }
@@ -39,7 +38,6 @@ const EventSelect = () => {
       } catch (err) {
 
         console.error("Event loading failed:", err);
-
         setEvents([]);
 
       }
@@ -63,17 +61,24 @@ const EventSelect = () => {
 
   };
 
+  // Loading state
+  if (events === null) {
+    return (
+      <div>
+        <h1 className="text-3xl mb-6">Select Event</h1>
+        <p>Loading events...</p>
+      </div>
+    );
+  }
+
+  // No events
   if (events.length === 0) {
-
-    console.warn("Event list is empty");
-
     return (
       <div>
         <h1 className="text-3xl mb-6">Select Event</h1>
         <p>No events available.</p>
       </div>
     );
-
   }
 
   return (
