@@ -3,47 +3,66 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 
+import ScoutLogin from "./pages/ScoutLogin";
 import EventSelect from "./pages/EventSelect";
 import MatchList from "./pages/MatchList";
 import ScoutForm from "./pages/ScoutForm";
+import MatchBoard from "./pages/MatchBoard";
+
+import RobotSelect from "./pages/RobotSelect";
 import Dashboard from "./pages/Dashboard";
 import Picklist from "./pages/Picklist";
-import RobotSelect from "./pages/RobotSelect";
 
 function App() {
-  return (
-    <BrowserRouter>
 
-      <div style={{ minHeight: "100vh", background: "#111", color: "white" }}>
+return (
 
-        {/* Top Navigation */}
-        <Navbar />
 
-        {/* Page Content */}
-        <div style={{ padding: "20px" }}>
+<BrowserRouter>
 
-          <Routes>
+  <div style={{ minHeight: "100vh", background: "#111", color: "white" }}>
 
-            <Route path="/" element={<EventSelect />} />
+    <Navbar />
 
-            <Route path="/robots" element={<RobotSelect />} />
+    <div style={{ padding: "20px" }}>
 
-            <Route path="/matches/:eventKey" element={<MatchList />} />
+      <Routes>
 
-            <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
+        {/* Scout login */}
+        <Route path="/login" element={<ScoutLogin />} />
 
-            <Route path="/dashboard" element={<Dashboard />} />
+        {/* Event selection */}
+        <Route path="/" element={<EventSelect />} />
 
-            <Route path="/picklist" element={<Picklist />} />
+        {/* Match selection for an event */}
+        <Route path="/matches/:eventKey" element={<MatchList />} />
 
-          </Routes>
+        {/* Scout a specific match */}
+        <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
 
-        </div>
+        {/* Live scouting activity */}
+        <Route path="/board" element={<MatchBoard />} />
 
-      </div>
+        {/* Robot analysis */}
+        <Route path="/robots" element={<RobotSelect />} />
 
-    </BrowserRouter>
-  );
+        {/* Live rankings */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Alliance picklist */}
+        <Route path="/picklist" element={<Picklist />} />
+
+      </Routes>
+
+    </div>
+
+  </div>
+
+</BrowserRouter>
+
+
+);
+
 }
 
 export default App;
