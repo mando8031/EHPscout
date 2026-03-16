@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 
@@ -7,13 +7,13 @@ import ScoutLogin from "./pages/ScoutLogin";
 import EventSelect from "./pages/EventSelect";
 import MatchList from "./pages/MatchList";
 import ScoutForm from "./pages/ScoutForm";
-import MatchBoard from "./pages/MatchBoard";
-
 import RobotSelect from "./pages/RobotSelect";
 import Dashboard from "./pages/Dashboard";
 import Picklist from "./pages/Picklist";
 
 function App() {
+
+const scoutName = localStorage.getItem("scoutName");
 
 return (
 
@@ -28,29 +28,68 @@ return (
 
       <Routes>
 
-        {/* Scout login */}
+        {/* Login page */}
         <Route path="/login" element={<ScoutLogin />} />
 
-        {/* Event selection */}
-        <Route path="/" element={<EventSelect />} />
+        {/* Default route */}
+        <Route
+          path="/"
+          element={
+            scoutName
+              ? <EventSelect />
+              : <Navigate to="/login" />
+          }
+        />
 
-        {/* Match selection for an event */}
-        <Route path="/matches/:eventKey" element={<MatchList />} />
+        {/* Event matches */}
+        <Route
+          path="/matches/:eventKey"
+          element={
+            scoutName
+              ? <MatchList />
+              : <Navigate to="/login" />
+          }
+        />
 
-        {/* Scout a specific match */}
-        <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
+        {/* Scout match */}
+        <Route
+          path="/scout/:eventKey/:matchNumber"
+          element={
+            scoutName
+              ? <ScoutForm />
+              : <Navigate to="/login" />
+          }
+        />
 
-        {/* Live scouting activity */}
-        <Route path="/board" element={<MatchBoard />} />
+        {/* Robot stats */}
+        <Route
+          path="/robots"
+          element={
+            scoutName
+              ? <RobotSelect />
+              : <Navigate to="/login" />
+          }
+        />
 
-        {/* Robot analysis */}
-        <Route path="/robots" element={<RobotSelect />} />
+        {/* Rankings */}
+        <Route
+          path="/dashboard"
+          element={
+            scoutName
+              ? <Dashboard />
+              : <Navigate to="/login" />
+          }
+        />
 
-        {/* Live rankings */}
-        <Route path="/dashboard" element={<Dashboard />} />
-
-        {/* Alliance picklist */}
-        <Route path="/picklist" element={<Picklist />} />
+        {/* Picklist */}
+        <Route
+          path="/picklist"
+          element={
+            scoutName
+              ? <Picklist />
+              : <Navigate to="/login" />
+          }
+        />
 
       </Routes>
 
