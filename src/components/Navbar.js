@@ -1,28 +1,64 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
-function Navbar() {
+const Navbar = () => {
 
-  const style = {
-    background: "linear-gradient(90deg, #2563eb, #06b6d4)",
-    padding: "14px",
-    display: "flex",
-    gap: "24px",
-    fontWeight: "bold",
-    fontSize: "18px",
-    boxShadow: "0px 4px 10px rgba(0,0,0,0.4)"
-  };
+const navigate = useNavigate();
 
-  const linkStyle = {
-    color: "white"
-  };
+async function logout() {
 
-  return (
-    <div style={style}>
-      <Link to="/" style={linkStyle}>Events</Link>
-      <Link to="/dashboard" style={linkStyle}>Stats</Link>
-      <Link to="/picklist" style={linkStyle}>Picklist</Link>
-    </div>
-  );
+
+await signOut(auth);
+navigate("/login");
+
+
 }
+
+return (
+
+
+<div style={{
+  background:"#222",
+  padding:"15px",
+  display:"flex",
+  gap:"20px",
+  alignItems:"center"
+}}>
+
+  <Link to="/" style={{color:"white"}}>Event</Link>
+
+  <Link to="/team" style={{color:"white"}}>Team</Link>
+
+  <Link to="/dashboard" style={{color:"white"}}>Dashboard</Link>
+
+  <Link to="/robots" style={{color:"white"}}>Robots</Link>
+
+  <Link to="/picklist" style={{color:"white"}}>Picklist</Link>
+
+  <Link to="/account" style={{color:"white"}}>Account</Link>
+
+  <button
+    onClick={logout}
+    style={{
+      marginLeft:"auto",
+      background:"#e74c3c",
+      color:"white",
+      border:"none",
+      padding:"8px 14px",
+      borderRadius:"5px",
+      cursor:"pointer"
+    }}
+  >
+    Logout
+  </button>
+
+</div>
+
+
+);
+
+};
 
 export default Navbar;
