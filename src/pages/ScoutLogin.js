@@ -1,30 +1,43 @@
 import React, { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import {
+signInWithEmailAndPassword,
+createUserWithEmailAndPassword
+} from "firebase/auth";
+import { auth } from "../firebase";
 
 const ScoutLogin = () => {
 
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
+const [creating, setCreating] = useState(false);
 
 const navigate = useNavigate();
 
-async function login(e) {
+async function handleSubmit(e) {
 
 
 e.preventDefault();
 
 try {
 
-  await signInWithEmailAndPassword(auth, email, password);
+  if (creating) {
+
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Account created!");
+
+  } else {
+
+    await signInWithEmailAndPassword(auth, email, password);
+
+  }
 
   navigate("/");
 
 } catch (err) {
 
-  alert("Login failed");
   console.error(err);
+  alert(err.message);
 
 }
 
@@ -40,16 +53,22 @@ return (
   padding: "40px"
 }}>
 
-  <h1>Scout Login</h1>
+  <h1 style={{ marginBottom: "20px" }}>
+    {creating ? "Create Account" : "Scout Login"}
+  </h1>
 
-  <form onSubmit={login}>
+  <form onSubmit={handleSubmit}>
 
     <input
       type="email"
       placeholder="Email"
       value={email}
       onChange={(e)=>setEmail(e.target.value)}
-      style={{ width: "100%", padding: "12px", marginBottom: "10px" }}
+      style={{
+        width: "100%",
+        padding: "12px",
+        marginBottom: "10px"
+      }}
     />
 
     <input
@@ -57,7 +76,11 @@ return (
       placeholder="Password"
       value={password}
       onChange={(e)=>setPassword(e.target.value)}
-      style={{ width: "100%", padding: "12px", marginBottom: "20px" }}
+      style={{
+        width: "100%",
+        padding: "12px",
+        marginBottom: "20px"
+      }}
     />
 
     <button
@@ -70,13 +93,27 @@ return (
         border: "none"
       }}
     >
-      Login
+      {creating ? "Create Account" : "Login"}
     </button>
 
   </form>
 
-</div>
+  <button
+    onClick={()=>setCreating(!creating)}
+    style={{
+      marginTop: "20px",
+      background: "none",
+      border: "none",
+      color: "#3498db",
+      cursor: "pointer"
+    }}
+  >
+    {creating
+      ? "Already have an account? Login"
+      : "Create a new account"}
+  </button>
 
+</div>
 
 );
 
