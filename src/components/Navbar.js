@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
-const Navbar = ({ role }) => {
+const Navbar = ({role}) => {
 
 const navigate = useNavigate();
 
-async function logout() {
+async function logout(){
 await signOut(auth);
 navigate("/login");
 }
@@ -17,29 +17,27 @@ return (
 
 <div
   style={{
-    background: "#222",
-    padding: "15px",
-    display: "flex",
-    gap: "20px",
-    alignItems: "center"
+    background:"#222",
+    padding:"15px",
+    display:"flex",
+    gap:"20px",
+    alignItems:"center"
   }}
 >
 
-  <Link to="/" style={{color:"white"}}>Event</Link>
-
   <Link to="/dashboard" style={{color:"white"}}>Dashboard</Link>
+
+  <Link to="/" style={{color:"white"}}>Events</Link>
 
   <Link to="/robots" style={{color:"white"}}>Robots</Link>
 
   <Link to="/picklist" style={{color:"white"}}>Picklist</Link>
 
-  {role === "admin" && (
-    <Link to="/admin" style={{color:"orange"}}>
+  {role==="admin" && (
+    <Link to="/admin" style={{color:"#f39c12"}}>
       Admin
     </Link>
   )}
-
-  <Link to="/team" style={{color:"white"}}>Team</Link>
 
   <Link to="/account" style={{color:"white"}}>Account</Link>
 
