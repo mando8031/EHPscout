@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -13,7 +13,14 @@ import Picklist from "./pages/Picklist";
 
 function App() {
 
-const scoutName = localStorage.getItem("scoutName");
+const [scoutName, setScoutName] = useState(
+localStorage.getItem("scoutName")
+);
+
+function handleLogin(name) {
+localStorage.setItem("scoutName", name);
+setScoutName(name);
+}
 
 return (
 
@@ -28,10 +35,11 @@ return (
 
       <Routes>
 
-        {/* Login page */}
-        <Route path="/login" element={<ScoutLogin />} />
+        <Route
+          path="/login"
+          element={<ScoutLogin onLogin={handleLogin} />}
+        />
 
-        {/* Default route */}
         <Route
           path="/"
           element={
@@ -41,7 +49,6 @@ return (
           }
         />
 
-        {/* Event matches */}
         <Route
           path="/matches/:eventKey"
           element={
@@ -51,7 +58,6 @@ return (
           }
         />
 
-        {/* Scout match */}
         <Route
           path="/scout/:eventKey/:matchNumber"
           element={
@@ -61,7 +67,6 @@ return (
           }
         />
 
-        {/* Robot stats */}
         <Route
           path="/robots"
           element={
@@ -71,7 +76,6 @@ return (
           }
         />
 
-        {/* Rankings */}
         <Route
           path="/dashboard"
           element={
@@ -81,7 +85,6 @@ return (
           }
         />
 
-        {/* Picklist */}
         <Route
           path="/picklist"
           element={
