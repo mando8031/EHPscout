@@ -6,39 +6,54 @@ const AdminPage = () => {
 
 const [teamId, setTeamId] = useState(null);
 const [joinCode, setJoinCode] = useState("");
-const [eventKey, setEventKey] = useState("");
+const [events, setEvents] = useState([]);
+const [selectedEvent, setSelectedEvent] = useState("");
 
 useEffect(() => {
 
 
-async function loadTeam() {
+async function loadData() {
 
-  const user = auth.currentUser;
-  if (!user) return;
+  try {
 
-  const userSnap = await getDoc(doc(db, "users", user.uid));
+    const user = auth.currentUser;
+    if (!user) return;
 
-  if (!userSnap.exists()) return;
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists()) return;
 
-  const data = userSnap.data();
-  const tId = data.teamId;
+    const tId = userSnap.data().teamId;
+    setTeamId(tId);
 
-  setTeamId(tId);
+    const teamSnap = await getDoc(doc(db, "teams", tId));
 
-  const teamSnap = await getDoc(doc(db, "teams", tId));
+    if (teamSnap.exists()) {
+      const teamData = teamSnap.data();
+      setJoinCode(teamData.joinCode || "");
+      setSelectedEvent(teamData.eventKey || "");
+    }
 
-  if (teamSnap.exists()) {
+    // Fetch events (current year)
+    const response = await fetch(
+      "https://www.thebluealliance.com/api/v3/events/2026",
+      {
+        headers: {
+          "X-TBA-Auth-Key": process.env.REACT_APP_TBA_KEY
+        }
+      }
+    );
 
-    const teamData = teamSnap.data();
+    const data = await response.json();
 
-    setJoinCode(teamData.joinCode || "");
-    setEventKey(teamData.eventKey || "");
+    setEvents(data);
 
+  } catch (err) {
+    console.error("Admin load error:", err);
   }
 
 }
 
-loadTeam();
+loadData();
 
 
 }, []);
@@ -48,13 +63,16 @@ async function saveEvent(e) {
 
 e.preventDefault();
 
-if (!teamId) return;
+if (!teamId || !selectedEvent) {
+  alert("Select an event");
+  return;
+}
 
 await updateDoc(doc(db, "teams", teamId), {
-  eventKey: eventKey
+  eventKey: selectedEvent
 });
 
-alert("Event saved for your team");
+alert("Event saved for team");
 
 
 }
@@ -66,25 +84,19 @@ return (
 
   <h1>Admin Panel</h1>
 
+  {/* JOIN CODE */}
   <div style={{
     border: "1px solid #444",
     padding: "20px",
     marginBottom: "30px"
   }}>
-
     <h2>Join Code</h2>
-
-    <div style={{
-      fontSize: "24px",
-      fontWeight: "bold"
-    }}>
+    <div style={{ fontSize: "24px", fontWeight: "bold" }}>
       {joinCode}
     </div>
-
-    <p>Give this code to scouts so they can join your team.</p>
-
   </div>
 
+  {/* EVENT SELECT (DROPDOWN) */}
   <div style={{
     border: "1px solid #444",
     padding: "20px"
@@ -94,16 +106,25 @@ return (
 
     <form onSubmit={saveEvent}>
 
-      <input
-        placeholder="Event Key (example: 2026mimid)"
-        value={eventKey}
-        onChange={(e)=>setEventKey(e.target.value)}
+      <select
+        value={selectedEvent}
+        onChange={(e)=>setSelectedEvent(e.target.value)}
         style={{
           width: "100%",
           padding: "10px",
           marginBottom: "15px"
         }}
-      />
+      >
+
+        <option value="">-- Select Event --</option>
+
+        {events.map((event) => (
+          <option key={event.key} value={event.key}>
+            {event.name}
+          </option>
+        ))}
+
+      </select>
 
       <button style={{
         width: "100%",
