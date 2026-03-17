@@ -20,21 +20,33 @@ async function loadData() {
     if (!user) return;
 
     const userSnap = await getDoc(doc(db, "users", user.uid));
-    if (!userSnap.exists()) return;
 
-    const tId = userSnap.data().teamId;
-    setTeamId(tId);
-
-    const teamSnap = await getDoc(doc(db, "teams", tId));
-
-    if (teamSnap.exists()) {
-      const teamData = teamSnap.data();
-      setJoinCode(teamData.joinCode || "");
-      setSelectedEvent(teamData.eventKey || "");
+    if (!userSnap.exists()) {
+      console.log("No user doc");
+      return;
     }
 
-    // Fetch events (current year)
-    const response = await fetch(
+    const data = userSnap.data();
+
+    console.log("USER DATA:", data);
+
+    setTeamId(data.teamId);
+
+    const teamSnap = await getDoc(doc(db, "teams", data.teamId));
+
+    if (teamSnap.exists()) {
+
+      const teamData = teamSnap.data();
+
+      console.log("TEAM DATA:", teamData);
+
+      setJoinCode(teamData.joinCode || "");
+      setSelectedEvent(teamData.eventKey || "");
+
+    }
+
+    // Load events
+    const res = await fetch(
       "https://www.thebluealliance.com/api/v3/events/2026",
       {
         headers: {
@@ -43,12 +55,11 @@ async function loadData() {
       }
     );
 
-    const data = await response.json();
-
-    setEvents(data);
+    const eventData = await res.json();
+    setEvents(eventData);
 
   } catch (err) {
-    console.error("Admin load error:", err);
+    console.error("LOAD ERROR:", err);
   }
 
 }
@@ -60,26 +71,46 @@ loadData();
 
 async function saveEvent(e) {
 
-  e.preventDefault();
+e.preventDefault();
 
-  if (!teamId || !selectedEvent) {
-    alert("Select an event");
-    return;
-  }
+console.log("Saving event...");
+console.log("teamId:", teamId);
+console.log("selectedEvent:", selectedEvent);
 
-  const selected = events.find(e => e.key === selectedEvent);
+if (!teamId) {
+  alert("No team found");
+  return;
+}
+
+if (!selectedEvent) {
+  alert("Select an event");
+  return;
+}
+
+try {
+
+  const selected = events.find(ev => ev.key === selectedEvent);
 
   await updateDoc(doc(db, "teams", teamId), {
     eventKey: selectedEvent,
     eventName: selected ? selected.name : ""
   });
 
-  alert("Event saved for team");
+  console.log("EVENT SAVED");
+
+  alert("Event saved successfully");
+
+} catch (err) {
+
+  console.error("SAVE ERROR:", err);
+  alert("Failed to save event");
+
+}
+
 
 }
 
 return (
-
 
 <div style={{ maxWidth: "600px", margin: "auto" }}>
 
@@ -97,7 +128,7 @@ return (
     </div>
   </div>
 
-  {/* EVENT SELECT (DROPDOWN) */}
+  {/* EVENT SELECT */}
   <div style={{
     border: "1px solid #444",
     padding: "20px"
@@ -127,7 +158,7 @@ return (
 
       </select>
 
-      <button style={{
+      <button type="submit" style={{
         width: "100%",
         padding: "12px"
       }}>
@@ -139,7 +170,6 @@ return (
   </div>
 
 </div>
-
 
 );
 
