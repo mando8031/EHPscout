@@ -2,14 +2,11 @@ import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 
-function generateCode() {
-return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
 const AdminPage = () => {
 
-const [team, setTeam] = useState(null);
+const [teamId, setTeamId] = useState(null);
 const [joinCode, setJoinCode] = useState("");
+const [eventKey, setEventKey] = useState("");
 
 useEffect(() => {
 
@@ -17,37 +14,27 @@ useEffect(() => {
 async function loadTeam() {
 
   const user = auth.currentUser;
-
   if (!user) return;
 
-  const userDoc = await getDoc(doc(db, "users", user.uid));
+  const userSnap = await getDoc(doc(db, "users", user.uid));
 
-  if (!userDoc.exists()) return;
+  if (!userSnap.exists()) return;
 
-  const teamId = userDoc.data().teamId;
+  const data = userSnap.data();
+  const tId = data.teamId;
 
-  const teamRef = doc(db, "teams", teamId);
-  const teamDoc = await getDoc(teamRef);
+  setTeamId(tId);
 
-  if (!teamDoc.exists()) return;
+  const teamSnap = await getDoc(doc(db, "teams", tId));
 
-  let data = teamDoc.data();
+  if (teamSnap.exists()) {
 
-  // If join code doesn't exist, create one
-  if (!data.joinCode) {
+    const teamData = teamSnap.data();
 
-    const newCode = generateCode();
-
-    await updateDoc(teamRef, {
-      joinCode: newCode
-    });
-
-    data.joinCode = newCode;
+    setJoinCode(teamData.joinCode || "");
+    setEventKey(teamData.eventKey || "");
 
   }
-
-  setTeam(data);
-  setJoinCode(data.joinCode);
 
 }
 
@@ -56,38 +43,78 @@ loadTeam();
 
 }, []);
 
-if (!team) {
-return <div>Loading team...</div>;
+async function saveEvent(e) {
+
+
+e.preventDefault();
+
+if (!teamId) return;
+
+await updateDoc(doc(db, "teams", teamId), {
+  eventKey: eventKey
+});
+
+alert("Event saved for your team");
+
+
 }
 
 return (
 
 
-<div style={{ maxWidth: "700px", margin: "auto" }}>
+<div style={{ maxWidth: "600px", margin: "auto" }}>
 
-  <h1>Admin Settings</h1>
+  <h1>Admin Panel</h1>
 
-  <h3>Team Name</h3>
-  <p>{team.name}</p>
+  <div style={{
+    border: "1px solid #444",
+    padding: "20px",
+    marginBottom: "30px"
+  }}>
 
-  <h3>Join Code</h3>
+    <h2>Join Code</h2>
 
-  <div
-    style={{
-      background: "#333",
-      padding: "15px",
+    <div style={{
       fontSize: "24px",
-      textAlign: "center",
-      borderRadius: "8px",
-      letterSpacing: "3px"
-    }}
-  >
-    {joinCode}
+      fontWeight: "bold"
+    }}>
+      {joinCode}
+    </div>
+
+    <p>Give this code to scouts so they can join your team.</p>
+
   </div>
 
-  <p style={{ marginTop: "20px" }}>
-    Share this code with scouts so they can join your team.
-  </p>
+  <div style={{
+    border: "1px solid #444",
+    padding: "20px"
+  }}>
+
+    <h2>Select Event</h2>
+
+    <form onSubmit={saveEvent}>
+
+      <input
+        placeholder="Event Key (example: 2026mimid)"
+        value={eventKey}
+        onChange={(e)=>setEventKey(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "10px",
+          marginBottom: "15px"
+        }}
+      />
+
+      <button style={{
+        width: "100%",
+        padding: "12px"
+      }}>
+        Save Event
+      </button>
+
+    </form>
+
+  </div>
 
 </div>
 
