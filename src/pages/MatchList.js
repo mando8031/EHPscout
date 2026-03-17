@@ -10,42 +10,57 @@ const [matches, setMatches] = useState([]);
 
 useEffect(() => {
 
-
 async function loadMatches() {
 
-  const user = auth.currentUser;
-  if (!user) return;
+  try {
 
-  const userSnap = await getDoc(doc(db, "users", user.uid));
-  const teamId = userSnap.data().teamId;
+    const user = auth.currentUser;
+    if (!user) return;
 
-  const teamSnap = await getDoc(doc(db, "teams", teamId));
-  const eventKey = teamSnap.data().eventKey;
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists()) return;
 
-  if (!eventKey) {
-    alert("Admin has not selected an event yet.");
-    return;
-  }
+    const teamId = userSnap.data().teamId;
 
-  const res = await fetch(
-    `https://www.thebluealliance.com/api/v3/event/${eventKey}/matches/simple`,
-    {
-      headers: {
-        "X-TBA-Auth-Key": process.env.REACT_APP_TBA_KEY
-      }
+    const teamSnap = await getDoc(doc(db, "teams", teamId));
+    if (!teamSnap.exists()) return;
+
+    const eventKey = teamSnap.data().eventKey;
+
+    if (!eventKey) {
+      alert("Admin has not selected an event yet.");
+      return;
     }
-  );
 
-  const data = await res.json();
+    const response = await fetch(
+      "https://www.thebluealliance.com/api/v3/event/" +
+      eventKey +
+      "/matches/simple",
+      {
+        headers: {
+          "X-TBA-Auth-Key": process.env.REACT_APP_TBA_KEY
+        }
+      }
+    );
 
-  const qmMatches = data.filter(m => m.comp_level === "qm");
+    const data = await response.json();
 
-  setMatches(qmMatches);
+    const qmMatches = data.filter(function(match) {
+      return match.comp_level === "qm";
+    });
+
+    setMatches(qmMatches);
+
+  } catch (err) {
+
+    console.error("Match load error:", err);
+
+  }
 
 }
 
 loadMatches();
-```
+
 
 }, []);
 
@@ -56,23 +71,19 @@ return (
 
   <h1>Matches</h1>
 
-  {matches.map(match => (
+  {matches.map((match) => (
 
     <div
       key={match.key}
+      onClick={() => navigate("/scout/" + match.match_number)}
       style={{
         border: "1px solid #444",
         padding: "10px",
         marginBottom: "10px",
         cursor: "pointer"
       }}
-      onClick={() =>
-        navigate(`/scout/${match.match_number}`)
-      }
     >
-
       Match {match.match_number}
-
     </div>
 
   ))}
