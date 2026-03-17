@@ -4,38 +4,59 @@ import { auth, db } from "../firebase";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 
 function generateCode() {
-return Math.random().toString(36).substring(2, 8);
+return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 const TeamSetup = () => {
 
 const navigate = useNavigate();
 const [teamName, setTeamName] = useState("");
+const [loading, setLoading] = useState(false);
 
 async function createTeam(e) {
 
 
 e.preventDefault();
 
-const user = auth.currentUser;
-
-if (!user) {
-  alert("Not logged in");
+if (!teamName.trim()) {
+  alert("Please enter a team name");
   return;
 }
 
-const teamRef = await addDoc(collection(db, "teams"), {
-  name: teamName,
-  joinCode: generateCode(),
-  createdBy: user.uid
-});
+const user = auth.currentUser;
 
-await updateDoc(doc(db, "users", user.uid), {
-  role: "admin",
-  teamId: teamRef.id
-});
+if (!user) {
+  alert("User not logged in");
+  return;
+}
 
-navigate("/dashboard");
+setLoading(true);
+
+try {
+
+  const teamRef = await addDoc(collection(db, "teams"), {
+    name: teamName.trim(),
+    joinCode: generateCode(),
+    createdBy: user.uid,
+    createdAt: new Date()
+  });
+
+  await updateDoc(doc(db, "users", user.uid), {
+    role: "admin",
+    teamId: teamRef.id
+  });
+
+  // hard redirect guarantees dashboard loads
+  window.location.href = "/dashboard";
+
+} catch (err) {
+
+  console.error("Create team error:", err);
+  alert("Failed to create team");
+
+}
+
+setLoading(false);
 
 
 }
@@ -66,9 +87,13 @@ return (
 
     <button
       type="submit"
-      style={{ width: "100%", padding: "12px" }}
+      disabled={loading}
+      style={{
+        width: "100%",
+        padding: "12px"
+      }}
     >
-      Create Team
+      {loading ? "Creating..." : "Create Team"}
     </button>
 
   </form>
@@ -79,7 +104,10 @@ return (
 
   <button
     onClick={goJoin}
-    style={{ width: "100%", padding: "12px" }}
+    style={{
+      width: "100%",
+      padding: "12px"
+    }}
   >
     Join Existing Team
   </button>
