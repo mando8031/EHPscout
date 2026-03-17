@@ -1,102 +1,38 @@
-import React, { useState } from "react";
-import { auth, db } from "../firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import QRCode from "react-qr-code";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const TeamSetup = () => {
 
-const [teamName, setTeamName] = useState("");
-const [joinCode, setJoinCode] = useState("");
-const [inviteCode, setInviteCode] = useState("");
-
-const uid = auth.currentUser?.uid;
-
-async function createTeam() {
-
-
-const code = Math.random().toString(36).substring(2,8);
-
-await setDoc(doc(db,"teams",code),{
-  name: teamName,
-  adminUid: uid,
-  inviteCode: code
-});
-
-await setDoc(doc(db,"users",uid),{
-  teamId: code,
-  role: "admin"
-});
-
-setInviteCode(code);
-
-
-}
-
-async function joinTeam() {
-
-
-const teamRef = doc(db,"teams",joinCode);
-const team = await getDoc(teamRef);
-
-if(!team.exists()){
-  alert("Team not found");
-  return;
-}
-
-await setDoc(doc(db,"users",uid),{
-  teamId: joinCode,
-  role: "scout"
-});
-
-alert("Joined team!");
-
-
-}
+const navigate = useNavigate();
 
 return (
 
 
-<div style={{maxWidth:"500px",margin:"auto"}}>
+<div style={{ maxWidth: "500px", margin: "auto", textAlign: "center" }}>
 
-  <h2>Create Team</h2>
+  <h1>Team Setup</h1>
 
-  <input
-    placeholder="Team Name"
-    value={teamName}
-    onChange={(e)=>setTeamName(e.target.value)}
-    style={{width:"100%",padding:"10px"}}
-  />
+  <p>Create a new team or join an existing one.</p>
 
-  <button onClick={createTeam}>
+  <button
+    onClick={() => navigate("/create-team")}
+    style={{
+      width: "100%",
+      padding: "12px",
+      marginTop: "20px"
+    }}
+  >
     Create Team
   </button>
 
-  {inviteCode && (
-
-    <div style={{marginTop:"30px"}}>
-
-      <h3>Invite Scouts</h3>
-
-      <QRCode value={inviteCode} />
-
-      <p>Join Code: {inviteCode}</p>
-
-    </div>
-
-  )}
-
-  <hr style={{margin:"40px 0"}}/>
-
-  <h2>Join Team</h2>
-
-  <input
-    placeholder="Enter team code"
-    value={joinCode}
-    onChange={(e)=>setJoinCode(e.target.value)}
-    style={{width:"100%",padding:"10px"}}
-  />
-
-  <button onClick={joinTeam}>
+  <button
+    onClick={() => navigate("/join-team")}
+    style={{
+      width: "100%",
+      padding: "12px",
+      marginTop: "15px"
+    }}
+  >
     Join Team
   </button>
 
