@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 
@@ -16,46 +16,65 @@ import RobotSelect from "./pages/RobotSelect";
 import Picklist from "./pages/Picklist";
 import AdminPage from "./pages/AdminPage";
 
-function App() {
+function Layout() {
+
+const location = useLocation();
+
+const hideNavbar =
+location.pathname === "/login" ||
+location.pathname === "/team" ||
+location.pathname === "/join-team";
 
 return (
 
 
-<BrowserRouter>
+<div style={{ minHeight: "100vh", background: "#111", color: "white" }}>
 
-  <div style={{ minHeight: "100vh", background: "#111", color: "white" }}>
+  {!hideNavbar && <Navbar />}
 
-    <Navbar />
+  <div style={{ padding: "20px" }}>
 
-    <div style={{ padding: "20px" }}>
+    <Routes>
 
-      <Routes>
+      <Route path="/login" element={<ScoutLogin />} />
 
-        <Route path="/login" element={<ScoutLogin />} />
+      <Route path="/team" element={<TeamSetup />} />
 
-        <Route path="/team" element={<TeamSetup />} />
+      <Route path="/join-team" element={<JoinTeam />} />
 
-        <Route path="/join-team" element={<JoinTeam />} />
+      <Route path="/dashboard" element={<Dashboard />} />
 
-        <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/" element={<EventSelect />} />
 
-        <Route path="/" element={<EventSelect />} />
+      <Route path="/matches/:eventKey" element={<MatchList />} />
 
-        <Route path="/matches/:eventKey" element={<MatchList />} />
+      <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
 
-        <Route path="/scout/:eventKey/:matchNumber" element={<ScoutForm />} />
+      <Route path="/robots" element={<RobotSelect />} />
 
-        <Route path="/robots" element={<RobotSelect />} />
+      <Route path="/picklist" element={<Picklist />} />
 
-        <Route path="/picklist" element={<Picklist />} />
+      <Route path="/admin" element={<AdminPage />} />
 
-        <Route path="/admin" element={<AdminPage />} />
-
-      </Routes>
-
-    </div>
+    </Routes>
 
   </div>
+
+</div>
+
+
+);
+
+}
+
+function App() {
+
+return (
+
+```
+<BrowserRouter>
+
+  <Layout />
 
 </BrowserRouter>
 
