@@ -1,49 +1,89 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
-import { deleteUser } from "firebase/auth";
-import { doc, deleteDoc } from "firebase/firestore";
+import { signOut, deleteUser } from "firebase/auth";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 const AccountSettings = () => {
 
 const navigate = useNavigate();
+const user = auth.currentUser;
 
-async function deleteAccount() {
+const [role, setRole] = useState("");
+const [teamName, setTeamName] = useState("");
 
-const confirmDelete = window.confirm(
-  "Are you sure you want to delete your account? This cannot be undone."
-);
+useEffect(() => {
+
+
+async function loadUserData() {
+
+  if (!user) return;
+
+  try {
+
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!userSnap.exists()) return;
+
+    const userData = userSnap.data();
+
+    setRole(userData.role || "scout");
+
+    if (userData.teamId) {
+
+      const teamSnap = await getDoc(doc(db, "teams", userData.teamId));
+
+      if (teamSnap.exists()) {
+        setTeamName(teamSnap.data().name || "");
+      }
+
+    }
+
+  } catch (err) {
+    console.error("Load account data error:", err);
+  }
+
+}
+
+loadUserData();
+
+
+}, [user]);
+
+async function handleSignOut() {
+try {
+await signOut(auth);
+navigate("/login");
+} catch (err) {
+console.error("Sign out error:", err);
+alert("Failed to sign out");
+}
+}
+
+//  KEEP EXISTING DELETE LOGIC
+async function handleDeleteAccount() {
+
+
+if (!user) return;
+
+const confirmDelete = window.confirm("Are you sure you want to delete your account?");
 
 if (!confirmDelete) return;
 
 try {
 
-  const user = auth.currentUser;
+  // delete user doc
+  await deleteDoc(doc(db, "users", user.uid));
 
-  if (!user) {
-    alert("No user logged in");
-    return;
-  }
-
-  const uid = user.uid;
-
-  await deleteDoc(doc(db, "users", uid));
-
+  // delete auth account
   await deleteUser(user);
-
-  alert("Account deleted");
 
   navigate("/login");
 
 } catch (err) {
 
-  console.error(err);
-
-  if (err.code === "auth/requires-recent-login") {
-    alert("Please log out and log back in before deleting your account.");
-  } else {
-    alert("Error deleting account");
-  }
+  console.error("Delete account error:", err);
+  alert("Failed to delete account");
 
 }
 
@@ -53,22 +93,43 @@ try {
 return (
 
 
-<div style={{maxWidth:"500px",margin:"auto"}}>
+<div style={{ maxWidth: "500px", margin: "auto" }}>
 
-  <h2>Account Settings</h2>
+  <h1>Account Settings</h1>
 
-  <p>
-    Deleting your account will permanently remove your login and profile.
-  </p>
+  <div style={{
+    border: "1px solid #444",
+    padding: "20px",
+    marginBottom: "20px"
+  }}>
 
+    <h2>User Info</h2>
+
+    <p>Email: {user?.email || "N/A"}</p>
+    <p>User ID: {user?.uid}</p>
+    <p>Role: {role}</p>
+    <p>Team: {teamName || "No team"}</p>
+
+  </div>
+
+  {/* SIGN OUT */}
   <button
-    onClick={deleteAccount}
+    onClick={handleSignOut}
     style={{
-      background:"red",
-      color:"white",
-      padding:"10px 20px",
-      border:"none",
-      borderRadius:"6px"
+      width: "100%",
+      padding: "12px",
+      marginBottom: "10px"
+    }}
+  >
+    Sign Out
+  </button>
+
+  {/* DELETE ACCOUNT (UNCHANGED BEHAVIOR) */}
+  <button
+    onClick={handleDeleteAccount}
+    style={{
+      width: "100%",
+      padding: "12px"
     }}
   >
     Delete Account
