@@ -1,12 +1,18 @@
 const TEAMS_KEY = "teams";
 
-export function createTeam(name) {
+function generateCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+export function createTeam(name, owner) {
+
   const teams = JSON.parse(localStorage.getItem(TEAMS_KEY)) || [];
 
   const newTeam = {
     id: Date.now().toString(),
     name,
-    members: []
+    code: generateCode(),
+    members: [owner]
   };
 
   teams.push(newTeam);
@@ -15,11 +21,13 @@ export function createTeam(name) {
   return newTeam;
 }
 
-export function joinTeam(teamId, username) {
+export function joinTeamWithCode(code, username) {
+
   const teams = JSON.parse(localStorage.getItem(TEAMS_KEY)) || [];
 
-  const team = teams.find(t => t.id === teamId);
-  if (!team) throw new Error("Team not found");
+  const team = teams.find(t => t.code === code);
+
+  if (!team) throw new Error("Invalid code");
 
   if (!team.members.includes(username)) {
     team.members.push(username);
