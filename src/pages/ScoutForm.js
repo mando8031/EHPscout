@@ -1,117 +1,243 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { saveScoutEntry } from "../utils/localDB";
+import React, { useEffect, useState } from "react";
+import { getMatches } from "../services/tbaService";
 
-const ScoutForm = () => {
+export default function ScoutForm() {
+  const [matches, setMatches] = useState([]);
+  const [selectedMatch, setSelectedMatch] = useState("");
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState("");
 
-  const { eventKey, matchNumber } = useParams();
-  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    robotType: [],
+    focus: [],
+    focusOther: "",
+    failures: [],
+    failuresOther: "",
+    accuracy: 3,
+    shootingSpeed: 3,
+    intakeSpeed: 3,
+    auton: [],
+    autonOther: "",
+    climb: [],
+    awareness: "",
+    notes: ""
+  });
 
-  const [team, setTeam] = useState("");
-  const [auton, setAuton] = useState(5);
-  const [accuracy, setAccuracy] = useState(5);
-  const [climb, setClimb] = useState("none");
-  const [movement, setMovement] = useState("1");
-  const [intake, setIntake] = useState("none");
-
-  const [submitting, setSubmitting] = useState(false);
-
-  function submitScout(e) {
-    e.preventDefault();
-
-    if (!team) {
-      alert("Enter team number");
-      return;
+  useEffect(() => {
+    async function loadMatches() {
+      const data = await getMatches();
+      setMatches(data || []);
     }
+    loadMatches();
+  }, []);
 
-    setSubmitting(true);
+  useEffect(() => {
+    if (!selectedMatch) return;
 
-    const payload = {
-      eventKey,
-      matchNumber: Number(matchNumber),
-      team: Number(team),
-      auton: Number(auton),
-      climb,
-      movement,
-      intake,
-      accuracy: Number(accuracy),
-      created: Date.now()
+    const match = matches.find(m => m.key === selectedMatch);
+    if (!match) return;
+
+    const allTeams = [
+      ...match.alliances.red.team_keys,
+      ...match.alliances.blue.team_keys
+    ];
+
+    setTeams(allTeams);
+  }, [selectedMatch, matches]);
+
+  const toggleMulti = (field, value) => {
+    setForm(prev => {
+      const exists = prev[field].includes(value);
+      return {
+        ...prev,
+        [field]: exists
+          ? prev[field].filter(v => v !== value)
+          : [...prev[field], value]
+      };
+    });
+  };
+
+  const handleSubmit = () => {
+    const entry = {
+      match: selectedMatch,
+      team: selectedTeam,
+      ...form,
+      timestamp: Date.now()
     };
 
-    saveScoutEntry(payload);
+    const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
+    localStorage.setItem("scoutingData", JSON.stringify([...existing, entry]));
 
-    alert("Saved locally!");
-    navigate(-1);
-    setSubmitting(false);
-  }
+    alert("Saved!");
+  };
 
-  const buttonStyle = (selected) => ({
-    flex: 1,
-    padding: "18px",
-    fontSize: "18px",
-    borderRadius: "10px",
+  const sectionStyle = {
+    marginBottom: "20px",
+    padding: "15px",
+    background: "#1e1e1e",
+    borderRadius: "10px"
+  };
+
+  const buttonStyle = (active) => ({
+    padding: "10px",
+    margin: "5px",
+    borderRadius: "8px",
     border: "none",
-    background: selected ? "#3498db" : "#ecf0f1",
-    color: selected ? "white" : "black"
+    background: active ? "#4caf50" : "#333",
+    color: "white",
+    flex: "1"
   });
 
   return (
-    <div style={{ maxWidth: "500px", margin: "auto", padding: "20px" }}>
-      <h1>Match {matchNumber}</h1>
+    <div style={{ padding: "10px", color: "white" }}>
+      <h2>Scout Match</h2>
 
-      <form onSubmit={submitScout}>
-
-        <input
-          type="number"
-          placeholder="Team Number"
-          value={team}
-          onChange={(e) => setTeam(e.target.value)}
-          style={{ width: "100%", padding: "16px", fontSize: "20px", marginBottom: "20px" }}
-        />
-
-        <h2>Auton: {auton}</h2>
-        <input type="range" min="1" max="10" step="1"
-          value={auton}
-          onChange={(e) => setAuton(e.target.value)}
-          style={{ width: "100%" }}
-        />
-
-        <h2>Climb</h2>
-        <div style={{ display: "flex", gap: "10px" }}>
-          {["none","L1","L2","L3"].map(c=>(
-            <button type="button" key={c} style={buttonStyle(climb===c)} onClick={()=>setClimb(c)}>{c}</button>
+      {/* MATCH SELECT */}
+      <div style={sectionStyle}>
+        <h3>Match</h3>
+        <select
+          style={{ width: "100%", padding: "12px" }}
+          onChange={(e) => setSelectedMatch(e.target.value)}
+        >
+          <option value="">Select Match</option>
+          {matches.map(m => (
+            <option key={m.key} value={m.key}>
+              {m.match_number}
+            </option>
           ))}
-        </div>
+        </select>
+      </div>
 
-        <h2>Movement</h2>
-        <div style={{ display: "flex", gap: "10px" }}>
-          {["1","2","3"].map(m=>(
-            <button type="button" key={m} style={buttonStyle(movement===m)} onClick={()=>setMovement(m)}>{m}</button>
+      {/* TEAM SELECT */}
+      <div style={sectionStyle}>
+        <h3>Team</h3>
+        <select
+          style={{ width: "100%", padding: "12px" }}
+          onChange={(e) => setSelectedTeam(e.target.value)}
+        >
+          <option value="">Select Team</option>
+          {teams.map(t => (
+            <option key={t} value={t}>{t.replace("frc", "")}</option>
           ))}
-        </div>
+        </select>
+      </div>
 
-        <h2>Intake</h2>
-        <div style={{ display: "flex", gap: "10px" }}>
-          {["none","1","2","3"].map(i=>(
-            <button type="button" key={i} style={buttonStyle(intake===i)} onClick={()=>setIntake(i)}>{i}</button>
-          ))}
-        </div>
+      {/* AUTON */}
+      <div style={sectionStyle}>
+        <h3>Auton</h3>
+        {["No Auton", "Shoot", "Collect Middle", "Collect Depot", "Climb", "Other"].map(opt => (
+          <button key={opt} style={buttonStyle(form.auton.includes(opt))}
+            onClick={() => toggleMulti("auton", opt)}>
+            {opt}
+          </button>
+        ))}
+        {form.auton.includes("Other") && (
+          <input placeholder="Other..." onChange={(e)=>setForm({...form, autonOther:e.target.value})}/>
+        )}
+      </div>
 
-        <h2>Accuracy: {accuracy}</h2>
-        <input type="range" min="1" max="10" step="1"
-          value={accuracy}
-          onChange={(e)=>setAccuracy(e.target.value)}
-          style={{ width:"100%" }}
+      {/* ROBOT TYPE */}
+      <div style={sectionStyle}>
+        <h3>Robot Type</h3>
+        {["Kitbot", "Custom", "Not Sure"].map(opt => (
+          <button key={opt} style={buttonStyle(form.robotType.includes(opt))}
+            onClick={() => toggleMulti("robotType", opt)}>
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {/* FOCUS */}
+      <div style={sectionStyle}>
+        <h3>Main Focus</h3>
+        {["Scoring", "Passing", "Defense", "Other"].map(opt => (
+          <button key={opt} style={buttonStyle(form.focus.includes(opt))}
+            onClick={() => toggleMulti("focus", opt)}>
+            {opt}
+          </button>
+        ))}
+        {form.focus.includes("Other") && (
+          <input placeholder="Other..." onChange={(e)=>setForm({...form, focusOther:e.target.value})}/>
+        )}
+      </div>
+
+      {/* PERFORMANCE SLIDERS */}
+      <div style={sectionStyle}>
+        <h3>Shooting Accuracy: {form.accuracy}</h3>
+        <input type="range" min="1" max="5" value={form.accuracy}
+          onChange={(e)=>setForm({...form, accuracy:e.target.value})}/>
+      </div>
+
+      <div style={sectionStyle}>
+        <h3>Shooting Speed: {form.shootingSpeed}</h3>
+        <input type="range" min="1" max="5" value={form.shootingSpeed}
+          onChange={(e)=>setForm({...form, shootingSpeed:e.target.value})}/>
+      </div>
+
+      <div style={sectionStyle}>
+        <h3>Intake Speed: {form.intakeSpeed}</h3>
+        <input type="range" min="1" max="5" value={form.intakeSpeed}
+          onChange={(e)=>setForm({...form, intakeSpeed:e.target.value})}/>
+      </div>
+
+      {/* CLIMB */}
+      <div style={sectionStyle}>
+        <h3>Climb</h3>
+        {["No", "L1", "L2", "L3", "Tried Failed"].map(opt => (
+          <button key={opt} style={buttonStyle(form.climb.includes(opt))}
+            onClick={() => toggleMulti("climb", opt)}>
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {/* FAILURES */}
+      <div style={sectionStyle}>
+        <h3>Failures</h3>
+        {["Lost Comms", "Lost Power", "Broken Intake", "Other"].map(opt => (
+          <button key={opt} style={buttonStyle(form.failures.includes(opt))}
+            onClick={() => toggleMulti("failures", opt)}>
+            {opt}
+          </button>
+        ))}
+        {form.failures.includes("Other") && (
+          <input placeholder="Other..." onChange={(e)=>setForm({...form, failuresOther:e.target.value})}/>
+        )}
+      </div>
+
+      {/* AWARENESS */}
+      <div style={sectionStyle}>
+        <h3>Driver Awareness</h3>
+        {["Yes", "No", "Kind Of"].map(opt => (
+          <button key={opt} style={buttonStyle(form.awareness === opt)}
+            onClick={() => setForm({...form, awareness: opt})}>
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {/* NOTES */}
+      <div style={sectionStyle}>
+        <h3>Additional Info</h3>
+        <textarea
+          style={{ width: "100%", height: "100px" }}
+          onChange={(e)=>setForm({...form, notes:e.target.value})}
         />
+      </div>
 
-        <button type="submit" disabled={submitting}
-          style={{ width:"100%", padding:"20px", fontSize:"22px", background:"#2ecc71", border:"none", borderRadius:"12px", color:"white" }}>
-          {submitting ? "Saving..." : "Submit"}
-        </button>
-
-      </form>
+      <button
+        onClick={handleSubmit}
+        style={{
+          width: "100%",
+          padding: "20px",
+          background: "#2196f3",
+          border: "none",
+          borderRadius: "10px",
+          fontSize: "18px"
+        }}
+      >
+        Save
+      </button>
     </div>
   );
-};
-
-export default ScoutForm;
+}
