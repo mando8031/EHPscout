@@ -1,35 +1,34 @@
 import React, { useState } from "react";
-import { joinTeam } from "../utils/localTeams";
+import { joinTeamWithCode } from "../utils/localTeams";
 import { getCurrentUser } from "../utils/localAuth";
+import { useNavigate } from "react-router-dom";
 
 const JoinTeam = () => {
 
-  const [teamId, setTeamId] = useState("");
+  const [code, setCode] = useState("");
+  const navigate = useNavigate();
 
   const handleJoin = () => {
 
     const user = getCurrentUser();
-    if (!user) {
-      alert("You must be logged in");
-      return;
-    }
 
     try {
-      joinTeam(teamId, user.username);
+      joinTeamWithCode(code, user.username);
       alert("Joined team!");
+      navigate("/dashboard");
     } catch (e) {
-      alert(e.message);
+      alert("Invalid code");
     }
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div>
       <h1>Join Team</h1>
 
       <input
-        placeholder="Team ID"
-        value={teamId}
-        onChange={(e) => setTeamId(e.target.value)}
+        placeholder="Join Code"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
       />
 
       <button onClick={handleJoin}>Join</button>
