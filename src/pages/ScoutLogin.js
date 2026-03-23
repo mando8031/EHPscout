@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { loginUser, registerUser } from "../utils/localAuth";
+import { useNavigate } from "react-router-dom";
 
 const ScoutLogin = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const navigate = useNavigate();
+
   const handleLogin = () => {
     try {
       loginUser(username, password);
-      alert("Logged in!");
-      window.location.reload();
+      navigate("/team-select");
     } catch {
       alert("Invalid login");
     }
@@ -19,22 +21,25 @@ const ScoutLogin = () => {
   const handleRegister = () => {
     try {
       registerUser(username, password);
-      alert("Account created!");
+      navigate("/team-select");
     } catch (e) {
       alert(e.message);
     }
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Login</h1>
+    <div>
+      <h1>Login / Register</h1>
 
-      <input placeholder="Username"
+      <input
+        placeholder="Username"
         value={username}
         onChange={e => setUsername(e.target.value)}
       />
 
-      <input type="password" placeholder="Password"
+      <input
+        type="password"
+        placeholder="Password"
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
