@@ -1,37 +1,45 @@
 import React, { useState } from "react";
-import { createTeam } from "../utils/localTeams";
-import { getCurrentUser } from "../utils/localAuth";
-import { useNavigate } from "react-router-dom";
 
-const CreateTeam = () => {
+export default function TeamSelect() {
 
-  const [name, setName] = useState("");
-  const navigate = useNavigate();
+  const [teamName, setTeamName] = useState("");
 
-  const handleCreate = () => {
+  const handleCreateTeam = () => {
+    if (!teamName) {
+      alert("Enter a team name");
+      return;
+    }
 
-    const user = getCurrentUser();
+    try {
+      // Save team to localStorage
+      localStorage.setItem("team", teamName);
 
-    const team = createTeam(name, user.username);
+      //  Force navigation so app updates
+      window.location.href = "/event-select";
 
-    alert(`Team created! Join Code: ${team.code}`);
-
-    navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Error creating team");
+    }
   };
 
   return (
-    <div>
-      <h1>Create Team</h1>
+    <div style={{ padding: "20px", maxWidth: "400px", margin: "auto" }}>
+      <h1>Create or Join Team</h1>
 
       <input
         placeholder="Team Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={teamName}
+        onChange={(e) => setTeamName(e.target.value)}
+        style={{ width: "100%", padding: "12px", marginBottom: "20px" }}
       />
 
-      <button onClick={handleCreate}>Create</button>
+      <button
+        onClick={handleCreateTeam}
+        style={{ width: "100%", padding: "15px" }}
+      >
+        Create Team
+      </button>
     </div>
   );
-};
-
-export default CreateTeam;
+}
