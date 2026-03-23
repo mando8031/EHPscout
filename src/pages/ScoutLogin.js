@@ -7,75 +7,48 @@ const ScoutLogin = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("login"); // login or register
 
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault(); //  VERY IMPORTANT
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-    console.log("Login clicked");
-
-    if (!username || !password) {
-      alert("Enter username and password");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      loginUser(username, password);
-
-      console.log("Login success");
-
-      navigate("/team-select");
-
-    } catch (err) {
-      console.error("Login failed:", err);
-      alert("Invalid login");
-    }
-
-    setLoading(false);
-  };
-
-  const handleRegister = (e) => {
-    e.preventDefault(); //  VERY IMPORTANT
-
-    console.log("Register clicked");
+    console.log("Submit triggered:", mode);
 
     if (!username || !password) {
       alert("Enter username and password");
       return;
     }
 
-    setLoading(true);
-
     try {
-      registerUser(username, password);
+      if (mode === "login") {
+        loginUser(username, password);
+      } else {
+        registerUser(username, password);
+      }
 
-      console.log("Register success");
+      console.log("SUCCESS → navigating");
 
       navigate("/team-select");
 
     } catch (err) {
-      console.error("Register failed:", err);
-      alert(err.message);
+      console.error("Auth error:", err);
+      alert(err.message || "Error");
     }
-
-    setLoading(false);
   };
 
   return (
     <div style={{ padding: "20px", maxWidth: "400px", margin: "auto" }}>
 
-      <h1>Login / Create Account</h1>
+      <h1>{mode === "login" ? "Login" : "Create Account"}</h1>
 
-      <form>
+      <form onSubmit={handleSubmit}>
 
         <input
           placeholder="Username"
           value={username}
-          onChange={e => setUsername(e.target.value)}
+          onChange={(e) => setUsername(e.target.value)}
           style={{ width: "100%", padding: "12px", marginBottom: "10px" }}
         />
 
@@ -83,25 +56,29 @@ const ScoutLogin = () => {
           type="password"
           placeholder="Password"
           value={password}
-          onChange={e => setPassword(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)}
           style={{ width: "100%", padding: "12px", marginBottom: "20px" }}
         />
 
         <button
-          onClick={handleLogin}
+          type="submit"
           style={{ width: "100%", padding: "15px", marginBottom: "10px" }}
         >
-          {loading ? "Loading..." : "Login"}
-        </button>
-
-        <button
-          onClick={handleRegister}
-          style={{ width: "100%", padding: "15px" }}
-        >
-          Create Account
+          {mode === "login" ? "Login" : "Create Account"}
         </button>
 
       </form>
+
+      <button
+        onClick={() =>
+          setMode(mode === "login" ? "register" : "login")
+        }
+        style={{ width: "100%", padding: "10px" }}
+      >
+        {mode === "login"
+          ? "Switch to Create Account"
+          : "Switch to Login"}
+      </button>
 
     </div>
   );
