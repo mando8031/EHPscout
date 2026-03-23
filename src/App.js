@@ -1,16 +1,11 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
-import Navbar from "./components/Navbar";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 
 import ScoutLogin from "./pages/ScoutLogin";
 import CreateTeam from "./pages/CreateTeam";
-import JoinTeam from "./pages/JoinTeam";
-import Dashboard from "./pages/Dashboard";
 import EventSelect from "./pages/EventSelect";
-import MatchList from "./pages/MatchList";
 import ScoutForm from "./pages/ScoutForm";
-import Picklist from "./pages/Picklist";
+import Dashboard from "./pages/Dashboard";
 
 import { getCurrentUser } from "./utils/localAuth";
 import { getTeams } from "./utils/localTeams";
@@ -24,94 +19,64 @@ function App() {
     user && teams.some(t => t.members.includes(user.username));
 
   return (
-    <BrowserRouter>
+    <Router>
 
-      {/* Show navbar ONLY after team setup */}
-      {user && userHasTeam && <Navbar />}
+      {/* NAVBAR */}
+      <nav style={{
+        display: "flex",
+        justifyContent: "space-around",
+        padding: "10px",
+        background: "#111",
+        color: "white",
+        position: "sticky",
+        top: 0,
+        zIndex: 1000
+      }}>
+        <Link style={{ color: "white" }} to="/">Home</Link>
 
-      <div style={{ padding: "20px" }}>
+        {user && userHasTeam && (
+          <>
+            <Link style={{ color: "white" }} to="/dashboard">Dashboard</Link>
+            <Link style={{ color: "white" }} to="/event-select">Events</Link>
 
-        <Routes>
+            {/* ✅ NEW SCOUT FORM LINK */}
+            <Link style={{ color: "white" }} to="/scout">Scout</Link>
+          </>
+        )}
+      </nav>
 
-          {/* LOGIN */}
-          <Route
-            path="/"
-            element={
-              !user ? <ScoutLogin /> : <Navigate to="/team-select" />
-            }
-          />
+      {/* ROUTES */}
+      <Routes>
 
-          {/* TEAM SELECT */}
-          <Route
-            path="/team-select"
-            element={
-              user && !userHasTeam ? (
-                <div>
-                  <h1>Select Option</h1>
-                  <a href="/create-team">Create Team</a><br/>
-                  <a href="/join-team">Join Team</a>
-                </div>
-              ) : <Navigate to="/dashboard" />
-            }
-          />
+        <Route
+          path="/"
+          element={
+            user
+              ? userHasTeam
+                ? <Navigate to="/dashboard" />
+                : <Navigate to="/create-team" />
+              : <ScoutLogin />
+          }
+        />
 
-          {/* CREATE TEAM */}
-          <Route
-            path="/create-team"
-            element={
-              user ? <CreateTeam /> : <Navigate to="/" />
-            }
-          />
+        <Route path="/create-team" element={<CreateTeam />} />
+        <Route path="/event-select" element={<EventSelect />} />
 
-          {/* JOIN TEAM */}
-          <Route
-            path="/join-team"
-            element={
-              user ? <JoinTeam /> : <Navigate to="/" />
-            }
-          />
+        {/* ✅ NEW ROUTE */}
+        <Route path="/scout" element={<ScoutForm />} />
 
-          {/* MAIN APP */}
-          <Route
-            path="/dashboard"
-            element={
-              userHasTeam ? <Dashboard /> : <Navigate to="/" />
-            }
-          />
+        <Route
+          path="/dashboard"
+          element={
+            user && userHasTeam
+              ? <Dashboard />
+              : <Navigate to="/" />
+          }
+        />
 
-          <Route
-            path="/events"
-            element={
-              userHasTeam ? <EventSelect /> : <Navigate to="/" />
-            }
-          />
+      </Routes>
 
-          <Route
-            path="/matches/:eventKey"
-            element={
-              userHasTeam ? <MatchList /> : <Navigate to="/" />
-            }
-          />
-
-          <Route
-            path="/scout/:eventKey/:matchNumber"
-            element={
-              userHasTeam ? <ScoutForm /> : <Navigate to="/" />
-            }
-          />
-
-          <Route
-            path="/picklist"
-            element={
-              userHasTeam ? <Picklist /> : <Navigate to="/" />
-            }
-          />
-
-        </Routes>
-
-      </div>
-
-    </BrowserRouter>
+    </Router>
   );
 }
 
