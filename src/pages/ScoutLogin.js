@@ -1,20 +1,14 @@
 import React, { useState } from "react";
 import { loginUser, registerUser } from "../utils/localAuth";
-import { useNavigate } from "react-router-dom";
 
 const ScoutLogin = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
   const [mode, setMode] = useState("login"); // login or register
-
-  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    console.log("Submit triggered:", mode);
 
     if (!username || !password) {
       alert("Enter username and password");
@@ -26,11 +20,13 @@ const ScoutLogin = () => {
         loginUser(username, password);
       } else {
         registerUser(username, password);
+        alert("Account created! Now log in.");
+        setMode("login");
+        return;
       }
 
-      console.log("SUCCESS → navigating");
-
-      navigate("/team-select");
+      // 🔥 FORCE APP TO SEE NEW USER
+      window.location.href = "/team-select";
 
     } catch (err) {
       console.error("Auth error:", err);
