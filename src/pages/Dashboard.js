@@ -8,6 +8,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const data = getScoutEntries();
+    console.log("Loaded local data:", data);
+
     const calculated = calculateTeamStats(data);
     setStats(calculated);
   }, []);
@@ -17,23 +19,37 @@ const Dashboard = () => {
 
       <h1>Dashboard</h1>
 
-      <button onClick={()=>{
-        clearScoutEntries();
-        window.location.reload();
-      }}>
+      <button
+        onClick={() => {
+          clearScoutEntries();
+          window.location.reload();
+        }}
+        style={{
+          marginBottom: "20px",
+          padding: "10px",
+          fontSize: "16px"
+        }}
+      >
         Clear Data
       </button>
 
+      {stats.length === 0 && (
+        <p>No scouting data yet.</p>
+      )}
+
       {stats.map(team => (
-        <div key={team.team} style={{
-          padding:"10px",
-          margin:"10px 0",
-          background:"#2c2c2c",
-          borderRadius:"8px"
-        }}>
+        <div
+          key={team.team}
+          style={{
+            padding: "12px",
+            marginBottom: "10px",
+            background: "#2c2c2c",
+            borderRadius: "8px"
+          }}
+        >
           <strong>Team {team.team}</strong><br/>
-          Auton: {team.autonAvg}<br/>
-          Accuracy: {team.accuracyAvg}
+          Auton Avg: {team.autonAvg}<br/>
+          Accuracy Avg: {team.accuracyAvg}
         </div>
       ))}
 
