@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { getEvents } from "../services/tbaService";
+import { useNavigate } from "react-router-dom";
 
 export default function EventSelect() {
-  const navigate = useNavigate();
+
   const [events, setEvents] = useState([]);
+  const navigate = useNavigate();
+
+  const currentEvent = localStorage.getItem("selectedEvent");
 
   useEffect(() => {
     async function loadEvents() {
@@ -17,15 +20,27 @@ export default function EventSelect() {
   }, []);
 
   const handleSelect = (eventKey) => {
-    // ✅ CRITICAL FIX
     localStorage.setItem("selectedEvent", eventKey);
 
-    navigate("/scout");
+    // go where user expects (dashboard)
+    navigate("/dashboard");
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "20px", color: "white" }}>
       <h1>Select Event</h1>
+
+      {/* CURRENT EVENT */}
+      {currentEvent && (
+        <div style={{
+          marginBottom: "20px",
+          padding: "10px",
+          background: "#1e1e1e",
+          borderRadius: "10px"
+        }}>
+          <p>Current Event: {currentEvent}</p>
+        </div>
+      )}
 
       {events.map(event => (
         <button
