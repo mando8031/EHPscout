@@ -24,10 +24,8 @@ export default function ScoutForm() {
     notes: ""
   });
 
-  // ✅ Get selected event
   const eventKey = localStorage.getItem("selectedEvent");
 
-  // ✅ Load matches using event
   useEffect(() => {
     async function loadMatches() {
       if (!eventKey) return;
@@ -40,15 +38,12 @@ export default function ScoutForm() {
           .sort((a, b) => a.match_number - b.match_number);
 
         setMatches(filtered);
-      } else {
-        console.error("TBA returned:", data);
       }
     }
 
     loadMatches();
   }, [eventKey]);
 
-  // ✅ Load teams from selected match
   useEffect(() => {
     if (!selectedMatch) return;
 
@@ -63,7 +58,6 @@ export default function ScoutForm() {
     setTeams(allTeams);
   }, [selectedMatch, matches]);
 
-  // 🔁 Multi-select toggle
   const toggleMulti = (field, value) => {
     setForm(prev => {
       const exists = prev[field].includes(value);
@@ -90,43 +84,32 @@ export default function ScoutForm() {
     alert("Saved!");
   };
 
-  // ===== YOUR ORIGINAL UI BELOW (UNCHANGED) =====
-
   const sectionStyle = {
     marginBottom: "20px",
     padding: "15px",
     background: "#1e1e1e",
-    borderRadius: "10px"
+    borderRadius: "12px"
   };
 
   const buttonStyle = (active) => ({
-    padding: "10px",
+    padding: "10px 12px",
     margin: "5px",
-    borderRadius: "8px",
+    borderRadius: "10px",
     border: "none",
     background: active ? "#4caf50" : "#333",
     color: "white",
-    flex: "1"
+    fontSize: "14px"
   });
 
   return (
     <div style={{ padding: "10px", color: "white" }}>
       <h2>Scout Match</h2>
 
-      {/* ⚠️ Warning if no event */}
-      {!eventKey && (
-        <p style={{ color: "red" }}>
-          No event selected. Go back and pick an event.
-        </p>
-      )}
-
       {/* MATCH */}
       <div style={sectionStyle}>
         <h3>Match</h3>
-        <select
-          style={{ width: "100%", padding: "12px" }}
-          onChange={(e) => setSelectedMatch(e.target.value)}
-        >
+        <select style={{ width: "100%", padding: "12px" }}
+          onChange={(e) => setSelectedMatch(e.target.value)}>
           <option value="">Select Match</option>
           {matches.map(m => (
             <option key={m.key} value={m.key}>
@@ -139,26 +122,21 @@ export default function ScoutForm() {
       {/* TEAM */}
       <div style={sectionStyle}>
         <h3>Team</h3>
-        <select
-          style={{ width: "100%", padding: "12px" }}
-          onChange={(e) => setSelectedTeam(e.target.value)}
-        >
+        <select style={{ width: "100%", padding: "12px" }}
+          onChange={(e) => setSelectedTeam(e.target.value)}>
           <option value="">Select Team</option>
           {teams.map(t => (
-            <option key={t} value={t}>
-              {t.replace("frc", "")}
-            </option>
+            <option key={t} value={t}>{t.replace("frc", "")}</option>
           ))}
         </select>
       </div>
 
-      {/* ===== EVERYTHING ELSE IS EXACTLY YOUR ORIGINAL FORM ===== */}
-
       {/* AUTON */}
       <div style={sectionStyle}>
         <h3>Auton</h3>
-        {["No Auton", "Shoot", "Collect Middle", "Collect Depot", "Climb", "Other"].map(opt => (
-          <button key={opt} style={buttonStyle(form.auton.includes(opt))}
+        {["No Auton / Not Working", "Shoot", "Collect Middle", "Collect Depot", "Climb", "Other"].map(opt => (
+          <button key={opt}
+            style={buttonStyle(form.auton.includes(opt))}
             onClick={() => toggleMulti("auton", opt)}>
             {opt}
           </button>
@@ -168,16 +146,112 @@ export default function ScoutForm() {
         )}
       </div>
 
-      {/* KEEP REST OF YOUR FORM EXACTLY AS IS */}
+      {/* ROBOT TYPE */}
+      <div style={sectionStyle}>
+        <h3>Robot Type</h3>
+        {["Kitbot", "Custom", "Not Sure"].map(opt => (
+          <button key={opt}
+            style={buttonStyle(form.robotType.includes(opt))}
+            onClick={() => toggleMulti("robotType", opt)}>
+            {opt}
+          </button>
+        ))}
+      </div>
 
+      {/* FOCUS */}
+      <div style={sectionStyle}>
+        <h3>Main Focus</h3>
+        {["Scoring", "Passing / Moving Balls", "Defense", "Other"].map(opt => (
+          <button key={opt}
+            style={buttonStyle(form.focus.includes(opt))}
+            onClick={() => toggleMulti("focus", opt)}>
+            {opt}
+          </button>
+        ))}
+        {form.focus.includes("Other") && (
+          <input placeholder="Other..." onChange={(e)=>setForm({...form, focusOther:e.target.value})}/>
+        )}
+      </div>
+
+      {/* SLIDERS */}
+      <div style={sectionStyle}>
+        <h3>Accuracy: {form.accuracy}</h3>
+        <input type="range" min="1" max="5"
+          value={form.accuracy}
+          onChange={(e)=>setForm({...form, accuracy:e.target.value})}/>
+      </div>
+
+      <div style={sectionStyle}>
+        <h3>Shooting Speed: {form.shootingSpeed}</h3>
+        <input type="range" min="1" max="5"
+          value={form.shootingSpeed}
+          onChange={(e)=>setForm({...form, shootingSpeed:e.target.value})}/>
+      </div>
+
+      <div style={sectionStyle}>
+        <h3>Intake Speed: {form.intakeSpeed}</h3>
+        <input type="range" min="1" max="5"
+          value={form.intakeSpeed}
+          onChange={(e)=>setForm({...form, intakeSpeed:e.target.value})}/>
+      </div>
+
+      {/* CLIMB */}
+      <div style={sectionStyle}>
+        <h3>Climb</h3>
+        {["No", "L1", "L2", "L3", "Tried and Failed"].map(opt => (
+          <button key={opt}
+            style={buttonStyle(form.climb.includes(opt))}
+            onClick={() => toggleMulti("climb", opt)}>
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {/* FAILURES */}
+      <div style={sectionStyle}>
+        <h3>Failures</h3>
+        {["Lost Communication", "Lost Power", "Broken Intake", "Other"].map(opt => (
+          <button key={opt}
+            style={buttonStyle(form.failures.includes(opt))}
+            onClick={() => toggleMulti("failures", opt)}>
+            {opt}
+          </button>
+        ))}
+        {form.failures.includes("Other") && (
+          <input placeholder="Other..." onChange={(e)=>setForm({...form, failuresOther:e.target.value})}/>
+        )}
+      </div>
+
+      {/* AWARENESS */}
+      <div style={sectionStyle}>
+        <h3>Did they look like they knew what they were doing?</h3>
+        {["Yes", "No", "Kind of Lost"].map(opt => (
+          <button key={opt}
+            style={buttonStyle(form.awareness === opt)}
+            onClick={() => setForm({...form, awareness: opt})}>
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {/* NOTES */}
+      <div style={sectionStyle}>
+        <h3>Additional Info</h3>
+        <textarea
+          style={{ width: "100%", height: "100px" }}
+          onChange={(e)=>setForm({...form, notes:e.target.value})}
+        />
+      </div>
+
+      {/* SAVE */}
       <button
         onClick={handleSubmit}
         style={{
           width: "100%",
           padding: "20px",
-          background: "#2196f3",
+          background: "#2d8cf0",
           border: "none",
-          borderRadius: "10px",
+          borderRadius: "12px",
           fontSize: "18px"
         }}
       >
