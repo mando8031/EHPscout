@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { getEvents } from "../services/tbaService";
-import { useNavigate } from "react-router-dom";
 
 export default function EventSelect() {
 
   const [events, setEvents] = useState([]);
-  const navigate = useNavigate();
 
   const currentEvent = localStorage.getItem("selectedEvent");
 
@@ -22,15 +20,14 @@ export default function EventSelect() {
   const handleSelect = (eventKey) => {
     localStorage.setItem("selectedEvent", eventKey);
 
-    // go where user expects (dashboard)
-    navigate("/dashboard");
+    // 🔥 FORCE RELOAD so App.js sees updated event
+    window.location.href = "/dashboard";
   };
 
   return (
     <div style={{ padding: "20px", color: "white" }}>
       <h1>Select Event</h1>
 
-      {/* CURRENT EVENT */}
       {currentEvent && (
         <div style={{
           marginBottom: "20px",
