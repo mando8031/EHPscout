@@ -24,34 +24,31 @@ export default function ScoutForm() {
     notes: ""
   });
 
-  // ✅ GET EVENT FROM LOCAL STORAGE
+  // ✅ Get selected event
   const eventKey = localStorage.getItem("selectedEvent");
 
-  // ✅ LOAD MATCHES CORRECTLY
+  // ✅ Load matches using event
   useEffect(() => {
     async function loadMatches() {
-      if (!eventKey) {
-        console.warn("No event selected");
-        return;
-      }
+      if (!eventKey) return;
 
       const data = await getMatches(eventKey);
 
       if (Array.isArray(data)) {
-        const sorted = data
+        const filtered = data
           .filter(m => m.comp_level === "qm")
           .sort((a, b) => a.match_number - b.match_number);
 
-        setMatches(sorted);
+        setMatches(filtered);
       } else {
-        console.error("Invalid match data:", data);
+        console.error("TBA returned:", data);
       }
     }
 
     loadMatches();
   }, [eventKey]);
 
-  // ✅ LOAD TEAMS FROM SELECTED MATCH
+  // ✅ Load teams from selected match
   useEffect(() => {
     if (!selectedMatch) return;
 
@@ -66,6 +63,7 @@ export default function ScoutForm() {
     setTeams(allTeams);
   }, [selectedMatch, matches]);
 
+  // 🔁 Multi-select toggle
   const toggleMulti = (field, value) => {
     setForm(prev => {
       const exists = prev[field].includes(value);
@@ -92,6 +90,8 @@ export default function ScoutForm() {
     alert("Saved!");
   };
 
+  // ===== YOUR ORIGINAL UI BELOW (UNCHANGED) =====
+
   const sectionStyle = {
     marginBottom: "20px",
     padding: "15px",
@@ -113,14 +113,14 @@ export default function ScoutForm() {
     <div style={{ padding: "10px", color: "white" }}>
       <h2>Scout Match</h2>
 
-      {/* ⚠️ WARNING IF NO EVENT */}
+      {/* ⚠️ Warning if no event */}
       {!eventKey && (
         <p style={{ color: "red" }}>
           No event selected. Go back and pick an event.
         </p>
       )}
 
-      {/* MATCH SELECT */}
+      {/* MATCH */}
       <div style={sectionStyle}>
         <h3>Match</h3>
         <select
@@ -136,7 +136,7 @@ export default function ScoutForm() {
         </select>
       </div>
 
-      {/* TEAM SELECT */}
+      {/* TEAM */}
       <div style={sectionStyle}>
         <h3>Team</h3>
         <select
@@ -152,7 +152,7 @@ export default function ScoutForm() {
         </select>
       </div>
 
-      {/* ===== EVERYTHING BELOW IS YOUR ORIGINAL UI ===== */}
+      {/* ===== EVERYTHING ELSE IS EXACTLY YOUR ORIGINAL FORM ===== */}
 
       {/* AUTON */}
       <div style={sectionStyle}>
@@ -168,7 +168,7 @@ export default function ScoutForm() {
         )}
       </div>
 
-      {/* (rest of your UI unchanged...) */}
+      {/* KEEP REST OF YOUR FORM EXACTLY AS IS */}
 
       <button
         onClick={handleSubmit}
