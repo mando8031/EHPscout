@@ -73,29 +73,41 @@ export default function ScoutForm() {
   const handleSubmit = () => {
 
   const eventKey = localStorage.getItem("selectedEvent");
-
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const id = `${eventKey}_${selectedMatch}_${selectedTeam}_${user.username}_${Date.now()}`;
-
   const entry = {
-    id, // ✅ UNIQUE ID
+    id: `${Date.now()}`,
     event: eventKey,
     match: selectedMatch,
     team: selectedTeam,
     scout: user.username,
-    ...form,
-    timestamp: Date.now()
+    ...form
   };
 
   const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
-
-  localStorage.setItem(
-    "scoutingData",
-    JSON.stringify([...existing, entry])
-  );
+  localStorage.setItem("scoutingData", JSON.stringify([...existing, entry]));
 
   alert("Saved!");
+
+  // ✅ RESET FORM
+  setSelectedMatch("");
+  setSelectedTeam("");
+
+  setForm({
+    robotType: [],
+    focus: [],
+    focusOther: "",
+    failures: [],
+    failuresOther: "",
+    accuracy: 3,
+    shootingSpeed: 3,
+    intakeSpeed: 3,
+    auton: [],
+    autonOther: "",
+    climb: [],
+    awareness: "",
+    notes: ""
+  });
 };
 
   const sectionStyle = {
