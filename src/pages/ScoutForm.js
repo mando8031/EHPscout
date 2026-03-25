@@ -72,21 +72,31 @@ export default function ScoutForm() {
 
   const handleSubmit = () => {
 
-    const eventKey = localStorage.getItem("selectedEvent");
+  const eventKey = localStorage.getItem("selectedEvent");
 
-    const entry = {
-      event: eventKey,
-      match: selectedMatch,
-      team: selectedTeam,
-      ...form,
-      timestamp: Date.now()
-    };
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-    const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
-    localStorage.setItem("scoutingData", JSON.stringify([...existing, entry]));
+  const id = `${eventKey}_${selectedMatch}_${selectedTeam}_${user.username}_${Date.now()}`;
 
-    alert("Saved!");
+  const entry = {
+    id, // ✅ UNIQUE ID
+    event: eventKey,
+    match: selectedMatch,
+    team: selectedTeam,
+    scout: user.username,
+    ...form,
+    timestamp: Date.now()
   };
+
+  const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
+
+  localStorage.setItem(
+    "scoutingData",
+    JSON.stringify([...existing, entry])
+  );
+
+  alert("Saved!");
+};
 
   const sectionStyle = {
     marginBottom: "20px",
