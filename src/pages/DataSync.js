@@ -25,63 +25,65 @@ export default function DataSync() {
 
   // 🔥 THIS IS THE IMPORTANT PART
   useEffect(() => {
-    if (!scanning) return;
+  if (!scanning) return;
 
-    const html5QrCode = new Html5Qrcode("reader");
+  const html5QrCode = new Html5Qrcode("reader");
 
-    setScanner(html5QrCode);
+  // 🔥 TRY TO FORCE BACK CAMERA
+  html5QrCode.start(
+    { facingMode: "environment" }, // ✅ THIS FIXES IT
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      console.log("QR scanned:", decodedText);
 
+      try {
+        const imported = JSON.parse(decodedText);
+        const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
+
+        const map = {};
+        [...existing, ...imported].forEach(entry => {
+          map[entry.id] = entry;
+        });
+
+        const merged = Object.values(map);
+
+        localStorage.setItem("scoutingData", JSON.stringify(merged));
+
+        alert("QR Data Merged!");
+
+        html5QrCode.stop().then(() => {
+          setScanning(false);
+        });
+
+      } catch (err) {
+        console.error(err);
+        alert("Invalid QR Data");
+      }
+    },
+    (error) => {
+      // ignore scan errors
+    }
+  ).catch(err => {
+    console.warn("Back camera failed, trying fallback:", err);
+
+    // 🔁 FALLBACK TO ANY CAMERA
     Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-
-        const cameraId = devices[0].id;
-
+      if (devices.length) {
         html5QrCode.start(
-          cameraId,
+          devices[0].id,
           { fps: 10, qrbox: 250 },
-          (decodedText) => {
-            console.log("QR scanned:", decodedText);
-
-            try {
-              const imported = JSON.parse(decodedText);
-              const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
-
-              const map = {};
-              [...existing, ...imported].forEach(entry => {
-                map[entry.id] = entry;
-              });
-
-              const merged = Object.values(map);
-
-              localStorage.setItem("scoutingData", JSON.stringify(merged));
-
-              alert("QR Data Merged!");
-
-              html5QrCode.stop().then(() => {
-                setScanning(false);
-              });
-
-            } catch (err) {
-              console.error(err);
-              alert("Invalid QR Data");
-            }
-          },
-          (error) => {
-            // ignore scan errors
-          }
+          () => {},
+          () => {}
         );
       }
-    }).catch(err => {
-      console.error("Camera error:", err);
-      alert("Camera access denied or not available");
-      setScanning(false);
     });
+  });
 
-    return () => {
-      html5QrCode.stop().catch(() => {});
-    };
+  return () => {
+    html5QrCode.stop().catch(() => {});
+  };
 
-  }, [scanning]);
+}, [scanning]);
 
   return (
     <div style={{ padding: "20px", color: "white" }}>
