@@ -71,7 +71,11 @@ export default function ScoutForm() {
   };
 
   const handleSubmit = () => {
+
+    const eventKey = localStorage.getItem("selectedEvent");
+
     const entry = {
+      event: eventKey,
       match: selectedMatch,
       team: selectedTeam,
       ...form,
