@@ -7,6 +7,7 @@ import EventSelect from "./pages/EventSelect";
 import ScoutForm from "./pages/ScoutForm";
 import Dashboard from "./pages/Dashboard";
 import DataSync from "./pages/DataSync";
+import NoEvent from "./pages/NoEvent";
 
 import { getCurrentUser } from "./utils/localAuth";
 import { getTeams } from "./utils/localTeams";
@@ -76,24 +77,25 @@ function App() {
         />
 
         {/* SCOUT */}
+        <Route path="/no-event" element={<NoEvent />} />
+
         <Route
           path="/scout"
           element={
-            user && selectedEvent
+            selectedEvent
               ? <ScoutForm />
-              : <Navigate to="/event-select" />
+              : <Navigate to="/no-event" />
           }
         />
 
-        {/* DASHBOARD */}
         <Route
           path="/dashboard"
           element={
-            user && selectedEvent
+            selectedEvent
               ? <Dashboard />
-              : <Navigate to="/event-select" />
-          }
-        />
+              : <Navigate to="/no-event" />
+         }
+       />
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />
@@ -103,6 +105,8 @@ function App() {
           path="/sync"
           element={user ? <DataSync /> : <Navigate to="/" />}
         />
+
+        
       </Routes>
 
     </Router>
