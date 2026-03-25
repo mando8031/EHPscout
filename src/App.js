@@ -39,8 +39,8 @@ function App() {
             <Link style={{ color: "white" }} to="/dashboard">Dashboard</Link>
             <Link style={{ color: "white" }} to="/sync">Sync</Link>
           </>
-       )}
-     </nav>
+        )}
+      </nav>
 
       <Routes>
 
@@ -62,9 +62,7 @@ function App() {
         <Route
           path="/event-select"
           element={
-            user
-              ? <EventSelect />
-              : <Navigate to="/" />
+            user ? <EventSelect /> : <Navigate to="/" />
           }
         />
 
@@ -76,37 +74,53 @@ function App() {
           }
         />
 
-        {/* SCOUT */}
-        <Route path="/no-event" element={<NoEvent />} />
-
+        {/* NO EVENT PAGE */}
         <Route
-          path="/scout"
+          path="/no-event"
           element={
-            selectedEvent
-              ? <ScoutForm />
-              : <Navigate to="/no-event" />
+            user ? <NoEvent /> : <Navigate to="/" />
           }
         />
 
+        {/* SCOUT */}
+        <Route
+          path="/scout"
+          element={
+            user
+              ? userHasTeam
+                ? (selectedEvent
+                    ? <ScoutForm />
+                    : <Navigate to="/no-event" />)
+                : <Navigate to="/create-team" />
+              : <Navigate to="/" />
+          }
+        />
+
+        {/* DASHBOARD */}
         <Route
           path="/dashboard"
           element={
-            selectedEvent
-              ? <Dashboard />
-              : <Navigate to="/no-event" />
-         }
-       />
-
-        {/* FALLBACK */}
-        <Route path="*" element={<Navigate to="/" />} />
+            user
+              ? userHasTeam
+                ? (selectedEvent
+                    ? <Dashboard />
+                    : <Navigate to="/no-event" />)
+                : <Navigate to="/create-team" />
+              : <Navigate to="/" />
+          }
+        />
 
         {/* DATASYNC */}
         <Route
           path="/sync"
-          element={user ? <DataSync /> : <Navigate to="/" />}
+          element={
+            user ? <DataSync /> : <Navigate to="/" />
+          }
         />
 
-        
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
 
     </Router>
