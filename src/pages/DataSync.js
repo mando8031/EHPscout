@@ -4,103 +4,138 @@ import { Html5Qrcode } from "html5-qrcode";
 
 export default function DataSync() {
 
-  const [qrData, setQrData] = useState("");
+  const [chunks, setChunks] = useState([]);
+  const [currentChunk, setCurrentChunk] = useState(0);
   const [scanning, setScanning] = useState(false);
-  const [scanner, setScanner] = useState(null);
+  const [received, setReceived] = useState({});
 
-  // 📤 GENERATE QR
+  // 📤 SPLIT DATA INTO CHUNKS
   const handleGenerateQR = () => {
-    const data = JSON.parse(localStorage.getItem("scoutingData") || "[]");
-    const recent = data.slice(-25);
+    const data = localStorage.getItem("scoutingData") || "[]";
 
-    const payload = JSON.stringify(recent);
-    setQrData(payload);
+    const CHUNK_SIZE = 800; // safe QR size
+
+    const parts = [];
+    for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+      parts.push(data.slice(i, i + CHUNK_SIZE));
+    }
+
+    // wrap with metadata
+    const wrapped = parts.map((chunk, index) => JSON.stringify({
+      index,
+      total: parts.length,
+      data: chunk
+    }));
+
+    setChunks(wrapped);
+    setCurrentChunk(0);
+  };
+
+  // ➡️ NEXT QR
+  const nextQR = () => {
+    if (currentChunk < chunks.length - 1) {
+      setCurrentChunk(currentChunk + 1);
+    }
+  };
+
+  // ⬅️ PREV QR
+  const prevQR = () => {
+    if (currentChunk > 0) {
+      setCurrentChunk(currentChunk - 1);
+    }
   };
 
   // 📥 START SCANNER
   const startScanner = () => {
-    console.log("Starting scanner...");
     setScanning(true);
   };
 
-  // 🔥 THIS IS THE IMPORTANT PART
   useEffect(() => {
-  if (!scanning) return;
+    if (!scanning) return;
 
-  const html5QrCode = new Html5Qrcode("reader");
+    const html5QrCode = new Html5Qrcode("reader");
 
-  // 🔥 TRY TO FORCE BACK CAMERA
-  html5QrCode.start(
-    { facingMode: "environment" }, // ✅ THIS FIXES IT
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      console.log("QR scanned:", decodedText);
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
 
-      try {
-        const imported = JSON.parse(decodedText);
-        const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
+        try {
+          const parsed = JSON.parse(decodedText);
 
-        const map = {};
-        [...existing, ...imported].forEach(entry => {
-          map[entry.id] = entry;
-        });
+          if (parsed.index === undefined) return;
 
-        const merged = Object.values(map);
+          setReceived(prev => {
+            if (prev[parsed.index]) return prev; // already scanned
 
-        localStorage.setItem("scoutingData", JSON.stringify(merged));
+            const updated = { ...prev, [parsed.index]: parsed.data };
 
-        alert("QR Data Merged!");
+            const total = parsed.total;
 
-        html5QrCode.stop().then(() => {
-          setScanning(false);
-        });
+            // ✅ CHECK IF COMPLETE
+            if (Object.keys(updated).length === total) {
 
-      } catch (err) {
-        console.error(err);
-        alert("Invalid QR Data");
-      }
-    },
-    (error) => {
-      // ignore scan errors
-    }
-  ).catch(err => {
-    console.warn("Back camera failed, trying fallback:", err);
+              // 🔗 REASSEMBLE
+              const fullString = Object.keys(updated)
+                .sort((a, b) => a - b)
+                .map(i => updated[i])
+                .join("");
 
-    // 🔁 FALLBACK TO ANY CAMERA
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices.length) {
-        html5QrCode.start(
-          devices[0].id,
-          { fps: 10, qrbox: 250 },
-          () => {},
-          () => {}
-        );
-      }
-    });
-  });
+              const imported = JSON.parse(fullString);
+              const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-  return () => {
-    html5QrCode.stop().catch(() => {});
-  };
+              const map = {};
+              [...existing, ...imported].forEach(entry => {
+                map[entry.id] = entry;
+              });
 
-}, [scanning]);
+              const merged = Object.values(map);
+
+              localStorage.setItem("scoutingData", JSON.stringify(merged));
+
+              alert("Full dataset merged!");
+
+              html5QrCode.stop();
+              setScanning(false);
+              setReceived({});
+            }
+
+            return updated;
+          });
+
+        } catch (err) {
+          console.error(err);
+        }
+      },
+      () => {}
+    );
+
+    return () => {
+      html5QrCode.stop().catch(() => {});
+    };
+
+  }, [scanning]);
 
   return (
     <div style={{ padding: "20px", color: "white" }}>
-      <h1>QR Sync</h1>
+      <h1>QR Sync (Full Transfer)</h1>
 
       {/* EXPORT */}
       <button
         onClick={handleGenerateQR}
         style={{ width: "100%", padding: "15px", marginBottom: "15px" }}
       >
-        Generate QR Code
+        Generate Multi QR
       </button>
 
-      {qrData && (
-        <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <QRCode value={qrData} size={250} />
-          <p>Have another device scan this</p>
+      {chunks.length > 0 && (
+        <div style={{ textAlign: "center" }}>
+          <QRCode value={chunks[currentChunk]} size={250} />
+
+          <p>{currentChunk + 1} / {chunks.length}</p>
+
+          <button onClick={prevQR} style={{ margin: "5px" }}>⬅️</button>
+          <button onClick={nextQR} style={{ margin: "5px" }}>➡️</button>
         </div>
       )}
 
@@ -108,21 +143,19 @@ export default function DataSync() {
       {!scanning && (
         <button
           onClick={startScanner}
-          style={{ width: "100%", padding: "15px" }}
+          style={{ width: "100%", padding: "15px", marginTop: "20px" }}
         >
-          Scan QR Code
+          Scan Multi QR
         </button>
       )}
 
-      {/* CAMERA VIEW */}
       {scanning && (
-        <div
-          id="reader"
-          style={{
-            width: "100%",
-            marginTop: "20px"
-          }}
-        />
+        <div>
+          <div id="reader" style={{ marginTop: "20px" }} />
+          <p style={{ marginTop: "10px" }}>
+            Scanned: {Object.keys(received).length} chunks
+          </p>
+        </div>
       )}
     </div>
   );
