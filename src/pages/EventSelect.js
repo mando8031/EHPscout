@@ -23,17 +23,32 @@ export default function EventSelect() {
     loadEvents();
   }, []);
 
+  // 🔥 DISTRICT NAME MAP
+  const districtMap = {
+    fim: "Michigan District",
+    fin: "Indiana District",
+    fit: "Texas District",
+    fma: "Mid-Atlantic District",
+    fne: "New England District",
+    fnc: "North Carolina District",
+    pnw: "Pacific Northwest District",
+    ont: "Ontario District",
+    isr: "Israel District"
+  };
+
+  // 🧠 GET DISTRICT NAME
+  const getDistrictName = (event) => {
+    if (event.district_key) {
+      const key = event.district_key.replace(/^\d+/, ""); // remove year (2026fim → fim)
+      return districtMap[key] || key.toUpperCase();
+    }
+    return "Regional Events";
+  };
+
   // 🔍 FILTER
   const filteredEvents = events.filter(event =>
     event.name.toLowerCase().includes(search.toLowerCase())
   );
-
-  // 🧠 CLEAN DISTRICT NAME
-  const getDistrictName = (event) => {
-    if (event.district?.display_name) return event.district.display_name;
-    if (event.district_key) return event.district_key.toUpperCase();
-    return "Regional Events";
-  };
 
   // 🧠 GROUP
   const grouped = {};
@@ -47,8 +62,8 @@ export default function EventSelect() {
 
   // 🧠 SORT DISTRICTS (Michigan first)
   const sortedDistricts = Object.keys(grouped).sort((a, b) => {
-    if (a.toLowerCase().includes("michigan")) return -1;
-    if (b.toLowerCase().includes("michigan")) return 1;
+    if (a === "Michigan District") return -1;
+    if (b === "Michigan District") return 1;
     return a.localeCompare(b);
   });
 
@@ -73,9 +88,9 @@ export default function EventSelect() {
   };
 
   const getStatusColor = (status) => {
-    if (status === "active") return "#00e676";   // green
-    if (status === "upcoming") return "#ffd600"; // yellow
-    return "#9e9e9e"; // grey
+    if (status === "active") return "#00e676";
+    if (status === "upcoming") return "#ffd600";
+    return "#9e9e9e";
   };
 
   // 🟢 SELECT
@@ -124,7 +139,7 @@ export default function EventSelect() {
       {sortedDistricts.map(district => (
         <div key={district} style={{ marginBottom: "25px" }}>
 
-          {/* 🧱 HEADER */}
+          {/* 🧱 HEADER (NOW FIXED) */}
           <h2 style={{
             borderBottom: "2px solid #444",
             paddingBottom: "5px"
@@ -148,14 +163,13 @@ export default function EventSelect() {
                   borderRadius: "10px",
                   border: "none",
                   textAlign: "left",
-
                   background: isSelected ? "#00c853" : "#1e1e1e",
                   color: isSelected ? "black" : "white"
                 }}
               >
 
                 {/* 🟢 STATUS DOT */}
-                <div style={{
+                <span style={{
                   width: "10px",
                   height: "10px",
                   borderRadius: "50%",
@@ -167,11 +181,7 @@ export default function EventSelect() {
                 <b>{event.name}</b>
 
                 {/* 📅 DATE */}
-                <div style={{
-                  fontSize: "12px",
-                  opacity: 0.8,
-                  marginTop: "5px"
-                }}>
+                <div style={{ fontSize: "12px", opacity: 0.8 }}>
                   {formatDate(event)}
                 </div>
 
