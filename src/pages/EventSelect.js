@@ -43,9 +43,9 @@ export default function EventSelect() {
       return districtMap[key] || "Other District";
     }
 
-  // 👇 EVERYTHING ELSE
-  return "Regional Events";
-};
+    // 👇 EVERYTHING ELSE
+    return "Regional Events";
+  };
 
     return districtMap[key] || "Regional Events";
   };
