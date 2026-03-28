@@ -38,14 +38,14 @@ export default function EventSelect() {
 
   // 🧠 GET DISTRICT (ROBUST VERSION)
   const getDistrictName = (event) => {
-    let key = "";
-
     if (event.district_key) {
-      key = event.district_key.replace(/^\d+/, "");
-    } else if (event.key) {
-      // fallback: extract from event key (2026miket → mi)
-      key = event.key.slice(4, 7); // crude but works well
+      const key = event.district_key.replace(/^\d+/, "");
+      return districtMap[key] || "Other District";
     }
+
+  // 👇 EVERYTHING ELSE
+  return "Regional Events";
+};
 
     return districtMap[key] || "Regional Events";
   };
