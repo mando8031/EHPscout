@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import NoEvent from "./NoEvent";
+import NoData from "./NoData";
 
 export default function Dashboard() {
 
@@ -6,17 +8,18 @@ export default function Dashboard() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const eventKey = localStorage.getItem("selectedEvent");
+  const selectedEvent = localStorage.getItem("selectedEvent");
 
-    if (!eventKey) {
+  useEffect(() => {
+
+    if (!selectedEvent) {
       setLoading(false);
       return;
     }
 
     const data = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-    const filtered = data.filter(d => d.event === eventKey);
+    const filtered = data.filter(d => d.event === selectedEvent);
 
     if (filtered.length === 0) {
       setTeams([]);
@@ -39,7 +42,7 @@ export default function Dashboard() {
     setTeams(ranked);
     setLoading(false);
 
-  }, []);
+  }, [selectedEvent]);
 
   // 🔴 LOADING
   if (loading) {
@@ -47,13 +50,13 @@ export default function Dashboard() {
   }
 
   // 🔴 NO EVENT
-  if (!localStorage.getItem("selectedEvent")) {
-    return <div style={{ padding: "20px", color: "white" }}>No event selected</div>;
+  if (!selectedEvent) {
+    return <NoEvent />;
   }
 
   // 🔴 NO DATA
   if (teams.length === 0) {
-    return <div style={{ padding: "20px", color: "white" }}>No data for this event yet</div>;
+    return <NoData />;
   }
 
   return (
