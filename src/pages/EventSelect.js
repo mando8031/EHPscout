@@ -23,7 +23,7 @@ export default function EventSelect() {
     loadEvents();
   }, []);
 
-  // 🔥 DISTRICT NAME MAP
+  // 🔥 DISTRICT MAP
   const districtMap = {
     fim: "Michigan District",
     fin: "Indiana District",
@@ -36,13 +36,18 @@ export default function EventSelect() {
     isr: "Israel District"
   };
 
-  // 🧠 GET DISTRICT NAME
+  // 🧠 GET DISTRICT (ROBUST VERSION)
   const getDistrictName = (event) => {
+    let key = "";
+
     if (event.district_key) {
-      const key = event.district_key.replace(/^\d+/, ""); // remove year (2026fim → fim)
-      return districtMap[key] || key.toUpperCase();
+      key = event.district_key.replace(/^\d+/, "");
+    } else if (event.key) {
+      // fallback: extract from event key (2026miket → mi)
+      key = event.key.slice(4, 7); // crude but works well
     }
-    return "Regional Events";
+
+    return districtMap[key] || "Regional Events";
   };
 
   // 🔍 FILTER
@@ -60,19 +65,18 @@ export default function EventSelect() {
     grouped[district].push(event);
   });
 
-  // 🧠 SORT DISTRICTS (Michigan first)
+  // 🧠 SORT DISTRICTS
   const sortedDistricts = Object.keys(grouped).sort((a, b) => {
     if (a === "Michigan District") return -1;
     if (b === "Michigan District") return 1;
     return a.localeCompare(b);
   });
 
-  // 📅 FORMAT DATE
+  // 📅 DATE
   const formatDate = (event) => {
     if (!event.start_date) return "";
     const start = new Date(event.start_date);
     const end = new Date(event.end_date);
-
     return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
   };
 
@@ -106,7 +110,7 @@ export default function EventSelect() {
     <div style={{ padding: "15px", color: "white" }}>
       <h1>Select Event</h1>
 
-      {/* 🔍 SEARCH */}
+      {/* SEARCH */}
       <input
         type="text"
         placeholder="Search events..."
@@ -121,7 +125,7 @@ export default function EventSelect() {
         }}
       />
 
-      {/* 📌 SELECTED */}
+      {/* SELECTED */}
       {selectedEventName && (
         <div style={{
           background: "#1e1e1e",
@@ -133,13 +137,17 @@ export default function EventSelect() {
         </div>
       )}
 
+      {/* DEBUG (REMOVE LATER) */}
+      <p style={{ fontSize: "12px", opacity: 0.6 }}>
+        Districts: {sortedDistricts.join(", ")}
+      </p>
+
       {filteredEvents.length === 0 && <p>No events found</p>}
 
-      {/* 📦 GROUPED */}
+      {/* GROUPS */}
       {sortedDistricts.map(district => (
         <div key={district} style={{ marginBottom: "25px" }}>
 
-          {/* 🧱 HEADER (NOW FIXED) */}
           <h2 style={{
             borderBottom: "2px solid #444",
             paddingBottom: "5px"
@@ -167,8 +175,6 @@ export default function EventSelect() {
                   color: isSelected ? "black" : "white"
                 }}
               >
-
-                {/* 🟢 STATUS DOT */}
                 <span style={{
                   width: "10px",
                   height: "10px",
@@ -180,7 +186,6 @@ export default function EventSelect() {
 
                 <b>{event.name}</b>
 
-                {/* 📅 DATE */}
                 <div style={{ fontSize: "12px", opacity: 0.8 }}>
                   {formatDate(event)}
                 </div>
