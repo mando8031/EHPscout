@@ -6,14 +6,13 @@ export default function Dashboard() {
 
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const selectedEvent = localStorage.getItem("selectedEvent");
 
-  useEffect(() => {
-
+  // 🔥 LOAD DATA FUNCTION
+  const loadData = () => {
     if (!selectedEvent) {
-      setLoading(false);
+      setTeams([]);
       return;
     }
 
@@ -23,7 +22,6 @@ export default function Dashboard() {
 
     if (filtered.length === 0) {
       setTeams([]);
-      setLoading(false);
       return;
     }
 
@@ -40,14 +38,20 @@ export default function Dashboard() {
     }));
 
     setTeams(ranked);
-    setLoading(false);
+  };
 
+  // 🔁 RUN ON LOAD + WHEN EVENT CHANGES
+  useEffect(() => {
+    loadData();
   }, [selectedEvent]);
 
-  // 🔴 LOADING
-  if (loading) {
-    return <div style={{ padding: "20px", color: "white" }}>Loading...</div>;
-  }
+  // 🔁 ALSO REFRESH WHEN PAGE FOCUSED (VERY IMPORTANT)
+  useEffect(() => {
+    const handleFocus = () => loadData();
+    window.addEventListener("focus", handleFocus);
+
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
 
   // 🔴 NO EVENT
   if (!selectedEvent) {
@@ -59,10 +63,24 @@ export default function Dashboard() {
     return <NoData />;
   }
 
+  // 🧠 FORMATTER
+  const formatField = (arr, other) => {
+    if (!arr || arr.length === 0) return "None";
+
+    let values = [...arr];
+
+    if (arr.includes("Other") && other) {
+      values = values.map(v => v === "Other" ? `Other: ${other}` : v);
+    }
+
+    return values.join(", ");
+  };
+
   return (
     <div style={{ padding: "10px", color: "white" }}>
       <h2>Team Rankings</h2>
 
+      {/* TEAM LIST */}
       {!selectedTeam && teams.map(t => (
         <div key={t.team}
           onClick={() => setSelectedTeam(t)}
@@ -78,6 +96,7 @@ export default function Dashboard() {
         </div>
       ))}
 
+      {/* TEAM DETAIL */}
       {selectedTeam && (
         <div>
           <button onClick={() => setSelectedTeam(null)}>Back</button>
@@ -87,14 +106,33 @@ export default function Dashboard() {
           {selectedTeam.entries.map((e, i) => (
             <div key={i} style={{
               background: "#1e1e1e",
-              padding: "10px",
-              marginBottom: "10px"
+              padding: "12px",
+              marginBottom: "12px",
+              borderRadius: "10px"
             }}>
+
+              <p><b>Scout:</b> {e.scout || "Unknown"}</p>
               <p><b>Match:</b> {e.match}</p>
+
+              <hr style={{ opacity: 0.2 }} />
+
+              <p><b>Robot Type:</b> {formatField(e.robotType)}</p>
+              <p><b>Main Focus:</b> {formatField(e.focus, e.focusOther)}</p>
+              <p><b>Failures:</b> {formatField(e.failures, e.failuresOther)}</p>
+              <p><b>Auton:</b> {formatField(e.auton, e.autonOther)}</p>
+              <p><b>Climb:</b> {formatField(e.climb)}</p>
+              <p><b>Driver Awareness:</b> {e.awareness || "N/A"}</p>
+
+              <hr style={{ opacity: 0.2 }} />
+
               <p><b>Accuracy:</b> {e.accuracy}</p>
               <p><b>Shooting Speed:</b> {e.shootingSpeed}</p>
               <p><b>Intake Speed:</b> {e.intakeSpeed}</p>
-              <p><b>Notes:</b> {e.notes}</p>
+
+              <hr style={{ opacity: 0.2 }} />
+
+              <p><b>Notes:</b> {e.notes || "None"}</p>
+
             </div>
           ))}
         </div>
