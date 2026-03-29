@@ -72,10 +72,29 @@ export default function ScoutForm() {
 
   const handleSubmit = () => {
 
-    // ✅ VALIDATION
+    // ✅ BASIC REQUIRED
     if (!selectedMatch) return alert("Select a match");
     if (!selectedTeam) return alert("Select a team");
     if (!form.awareness) return alert("Select driver awareness");
+
+    // ✅ CHECK IF ANY REAL DATA WAS ENTERED
+    const hasRealData =
+      form.robotType.length > 0 ||
+      form.focus.length > 0 ||
+      form.auton.length > 0 ||
+      form.failures.length > 0 ||
+      form.climb.length > 0 ||
+      form.notes.trim() !== "" ||
+      form.focusOther.trim() !== "" ||
+      form.failuresOther.trim() !== "" ||
+      form.autonOther.trim() !== "" ||
+      Number(form.accuracy) !== 3 ||
+      Number(form.shootingSpeed) !== 3 ||
+      Number(form.intakeSpeed) !== 3;
+
+    if (!hasRealData) {
+      return alert("Enter at least some scouting data");
+    }
 
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -91,7 +110,7 @@ export default function ScoutForm() {
     const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
     localStorage.setItem("scoutingData", JSON.stringify([...existing, entry]));
 
-    // 🔥 FIND NEXT MATCH SAFELY
+    // 🔥 NEXT MATCH
     const currentIndex = matches.findIndex(m => m.key === selectedMatch);
 
     let nextMatchKey = "";
@@ -118,12 +137,10 @@ export default function ScoutForm() {
 
     setSelectedTeam("");
 
-    // 🔥 IMPORTANT: delay ensures React updates properly
     setTimeout(() => {
       setSelectedMatch(nextMatchKey);
     }, 0);
 
-    // 🔥 SCROLL TO TOP
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
