@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import NoEvent from "./NoEvent";
-import NoData from "./NoData";
 
 export default function Dashboard() {
 
@@ -54,10 +53,6 @@ export default function Dashboard() {
     return <NoEvent />;
   }
 
-  // 🔴 NO DATA
-  if (teams.length === 0) {
-    return <NoData />;
-  }
 
   // 🧠 HELPER: display arrays + "Other"
   const formatField = (arr, other) => {
