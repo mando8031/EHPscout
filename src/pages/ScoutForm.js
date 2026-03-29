@@ -5,9 +5,9 @@ export default function ScoutForm() {
 
   const [matches, setMatches] = useState([]);
   const [selectedMatch, setSelectedMatch] = useState("");
-const [teams, setTeams] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState("");
-
+  const [formKey, setFormKey] = useState(0);
   const [form, setForm] = useState({
     robotType: [],
     focus: [],
@@ -72,43 +72,44 @@ useEffect(() => {
 
   const handleSubmit = () => {
 
-  const eventKey = localStorage.getItem("selectedEvent");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const eventKey = localStorage.getItem("selectedEvent");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const entry = {
-    id: `${Date.now()}`,
-    event: eventKey,
-    match: selectedMatch,
-    team: selectedTeam,
-    scout: user.username,
-    ...form
+    const entry = {
+      id: `${Date.now()}`,
+      event: eventKey,
+      match: selectedMatch,
+      team: selectedTeam,
+      scout: user.username,
+      ...form
+    };
+
+    const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
+    localStorage.setItem("scoutingData", JSON.stringify([...existing, entry]));
+
+    // 🔥 RESET EVERYTHING
+    setSelectedMatch("");
+    setSelectedTeam("");
+
+    setForm({
+      robotType: [],
+      focus: [],
+      focusOther: "",
+      failures: [],
+      failuresOther: "",
+      accuracy: 3,
+      shootingSpeed: 3,
+      intakeSpeed: 3,
+      auton: [],
+      autonOther: "",
+      climb: [],
+      awareness: "",
+      notes: ""
+    });
+
+    // 🔥 FORCE FULL UI RESET
+    setFormKey(prev => prev + 1);
   };
-
-  const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
-  localStorage.setItem("scoutingData", JSON.stringify([...existing, entry]));
-
-  alert("Saved!");
-
-  // ✅ RESET FORM
-  setSelectedMatch("");
-  setSelectedTeam("");
-
-  setForm({
-    robotType: [],
-    focus: [],
-    focusOther: "",
-    failures: [],
-    failuresOther: "",
-    accuracy: 3,
-    shootingSpeed: 3,
-    intakeSpeed: 3,
-    auton: [],
-    autonOther: "",
-    climb: [],
-    awareness: "",
-    notes: ""
-  });
-};
 
   const sectionStyle = {
     marginBottom: "20px",
@@ -128,7 +129,7 @@ useEffect(() => {
   });
 
 return (
-<div style={{ padding: "10px", color: "white" }}>
+  <div key={formKey} style={{ padding: "10px", color: "white" }}>
       <h2>Scout Match</h2>
 
       {/* MATCH */}
