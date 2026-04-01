@@ -277,7 +277,7 @@ export default function AccountSettings() {
           value={teamsInput}
           onChange={(e)=>setTeamsInput(e.target.value)}
         />
-        <button onClick={calibrate} style={btn}>Calibrate</button>
+        <button onClick={runCalibration} style={btn}>Calibrate</button>
       </div>
 
       {/* PRESETS */}
