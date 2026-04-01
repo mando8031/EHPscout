@@ -9,24 +9,49 @@ export default function Dashboard() {
 
   const selectedEvent = localStorage.getItem("selectedEvent");
 
-  // 🧠 SCORE CALCULATION
+  // 🧠 LOAD SETTINGS
+  const getSettings = () => {
+    return JSON.parse(localStorage.getItem("scoringSettings")) || {
+      accuracy: 0.3,
+      shootingSpeed: 0.2,
+      intakeSpeed: 0.2,
+      auton: 0.1,
+      climb: 0.1,
+      awareness: 0.1,
+      failurePenalty: 0.2
+    };
+  };
+
+  // 🧠 SCORE CALCULATION (0 → 1)
   const calculateScore = (entry) => {
+    const settings = getSettings();
+
     let score = 0;
 
-    score += Number(entry.accuracy || 0) * 3;
-    score += Number(entry.shootingSpeed || 0) * 2;
-    score += Number(entry.intakeSpeed || 0) * 2;
+    // 🎯 sliders (normalize 1–5 → 0–1)
+    score += ((Number(entry.accuracy) - 1) / 4) * settings.accuracy;
+    score += ((Number(entry.shootingSpeed) - 1) / 4) * settings.shootingSpeed;
+    score += ((Number(entry.intakeSpeed) - 1) / 4) * settings.intakeSpeed;
 
-    // awareness bonus
-    if (entry.awareness === "Yes") score += 3;
-    if (entry.awareness === "Kind of Lost") score += 1;
+    // 🧠 awareness
+    if (entry.awareness === "Yes") score += settings.awareness;
+    if (entry.awareness === "Kind of Lost") score += settings.awareness * 0.5;
 
-    // climb bonus
-    if (entry.climb?.includes("L3")) score += 5;
-    else if (entry.climb?.includes("L2")) score += 3;
-    else if (entry.climb?.includes("L1")) score += 1;
+    // 🧗 climb
+    if (entry.climb?.includes("L3")) score += settings.climb;
+    else if (entry.climb?.includes("L2")) score += settings.climb * 0.7;
+    else if (entry.climb?.includes("L1")) score += settings.climb * 0.4;
 
-    return score;
+    // 🤖 auton (any activity = credit)
+    if (entry.auton?.length > 0) score += settings.auton;
+
+    // ❌ failures penalty
+    if (entry.failures?.length > 0) {
+      score -= settings.failurePenalty * (entry.failures.length / 3);
+    }
+
+    // 🔒 clamp 0–1
+    return Math.max(0, Math.min(1, score));
   };
 
   // 🔥 LOAD DATA
@@ -65,7 +90,7 @@ export default function Dashboard() {
       return {
         team,
         entries,
-        avgScore: avgScore.toFixed(1)
+        avgScore: avgScore
       };
     });
 
@@ -122,7 +147,7 @@ export default function Dashboard() {
           <h3>
             #{index + 1} — Team {t.team.replace("frc", "")}
           </h3>
-          <p>Score: {t.avgScore}</p>
+          <p>Score: {(t.avgScore * 100).toFixed(0)}%</p>
           <p>Matches: {t.entries.length}</p>
         </div>
       ))}
@@ -133,7 +158,8 @@ export default function Dashboard() {
           <button onClick={() => setSelectedTeam(null)}>Back</button>
 
           <h2>
-            Team {selectedTeam.team.replace("frc", "")} (Score: {selectedTeam.avgScore})
+            Team {selectedTeam.team.replace("frc", "")} (
+            {(selectedTeam.avgScore * 100).toFixed(0)}%)
           </h2>
 
           {selectedTeam.entries.map((e, i) => (
