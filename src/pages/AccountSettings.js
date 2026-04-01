@@ -31,8 +31,9 @@ export default function AccountSettings() {
   const [presetName, setPresetName] = useState("");
   const [presets, setPresets] = useState({});
   const [selectedTeams, setSelectedTeams] = useState([]);
+  const [teamInput, setTeamInput] = useState("");
 
-  // 🔥 LOAD
+  // LOAD
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("scoringSettings"));
     const savedPresets = JSON.parse(localStorage.getItem("scoringPresets")) || {};
@@ -41,7 +42,7 @@ export default function AccountSettings() {
     setPresets(savedPresets);
   }, []);
 
-  // 🔥 AUTOSAVE
+  // AUTOSAVE
   useEffect(() => {
     localStorage.setItem("scoringSettings", JSON.stringify(settings));
   }, [settings]);
@@ -53,7 +54,7 @@ export default function AccountSettings() {
     }));
   };
 
-  // 🔥 NORMALIZE
+  // NORMALIZE
   const normalizeGroup = (fields) => {
     let total = fields.reduce((sum, f) => sum + settings[f], 0);
     if (total === 0) total = 1;
@@ -66,15 +67,15 @@ export default function AccountSettings() {
     setSettings(updated);
   };
 
-  // 🔥 CALIBRATION (FULL)
+  // CALIBRATION
   const calibrate = () => {
     const selectedEvent = localStorage.getItem("selectedEvent");
-    if (!selectedEvent) return alert("Select event first");
+    if (!selectedEvent) return alert("Select event");
 
     const data = JSON.parse(localStorage.getItem("scoutingData") || "[]")
       .filter(d => d.event === selectedEvent);
 
-    if (data.length === 0) return alert("No data");
+    if (!data.length) return alert("No data");
 
     const grouped = {};
     data.forEach(e => {
@@ -87,39 +88,39 @@ export default function AccountSettings() {
       entries: grouped[team]
     }));
 
-    const selectedSet = new Set(selectedTeams);
-    const topTeams = teams.filter(t => selectedSet.has(t.team));
-    const otherTeams = teams.filter(t => !selectedSet.has(t.team));
+    const top = teams.filter(t => selectedTeams.includes(t.team));
+    const others = teams.filter(t => !selectedTeams.includes(t.team));
 
-    if (topTeams.length === 0) return alert("Pick top teams");
+    if (!top.length) return alert("Pick teams");
 
-    const avg = (entries, fn) =>
-      entries.reduce((sum, e) => sum + fn(e), 0) / entries.length;
+    const avg = (arr, fn) =>
+      arr.reduce((s, e) => s + fn(e), 0) / arr.length;
 
     const diff = (fn) => {
-      const top = avg(topTeams.flatMap(t => t.entries), fn);
-      const other = avg(otherTeams.flatMap(t => t.entries), fn);
-      return Math.max(0.01, top - other);
+      const t = avg(top.flatMap(t => t.entries), fn);
+      const o = avg(others.flatMap(t => t.entries), fn);
+      return Math.max(0.01, t - o);
     };
 
-    let newSettings = { ...settings };
+    let s = { ...settings };
 
     // MAIN
-    newSettings.accuracy = diff(e => Number(e.accuracy || 0));
-    newSettings.shootingSpeed = diff(e => Number(e.shootingSpeed || 0));
-    newSettings.intakeSpeed = diff(e => Number(e.intakeSpeed || 0));
+    s.accuracy = diff(e => Number(e.accuracy || 0));
+    s.shootingSpeed = diff(e => Number(e.shootingSpeed || 0));
+    s.intakeSpeed = diff(e => Number(e.intakeSpeed || 0));
 
-    newSettings.awareness = diff(e =>
-      e.awareness === "Yes" ? 1 : e.awareness === "Kind of Lost" ? 0.5 : 0
+    s.awareness = diff(e =>
+      e.awareness === "Yes" ? 1 :
+      e.awareness === "Kind of Lost" ? 0.5 : 0
     );
 
-    newSettings.climb = diff(e =>
+    s.climb = diff(e =>
       e.climb?.includes("L3") ? 1 :
       e.climb?.includes("L2") ? 0.7 :
       e.climb?.includes("L1") ? 0.4 : 0
     );
 
-    newSettings.robotType = diff(e =>
+    s.robotType = diff(e =>
       e.robotType?.includes("Custom") ? 1 :
       e.robotType?.includes("Kitbot") ? 0 : 0.5
     );
@@ -133,7 +134,7 @@ export default function AccountSettings() {
     };
 
     Object.entries(autonMap).forEach(([k, v]) => {
-      newSettings[k] = diff(e => e.auton?.includes(v) ? 1 : 0);
+      s[k] = diff(e => e.auton?.includes(v) ? 1 : 0);
     });
 
     // FOCUS
@@ -144,10 +145,10 @@ export default function AccountSettings() {
     };
 
     Object.entries(focusMap).forEach(([k, v]) => {
-      newSettings[k] = diff(e => e.focus?.includes(v) ? 1 : 0);
+      s[k] = diff(e => e.focus?.includes(v) ? 1 : 0);
     });
 
-    // FAILURES (inverted)
+    // FAILURES
     const failMap = {
       failureLostComm: "Lost Communication",
       failureLostPower: "Lost Power",
@@ -156,24 +157,11 @@ export default function AccountSettings() {
 
     Object.entries(failMap).forEach(([k, v]) => {
       const d = diff(e => e.failures?.includes(v) ? 1 : 0);
-      newSettings[k] = 1 / d;
+      s[k] = 1 / d;
     });
 
-    // RECALC MAIN
-    newSettings.auton =
-      newSettings.autonShoot +
-      newSettings.autonCollectMiddle +
-      newSettings.autonCollectDepot +
-      newSettings.autonClimb;
+    setSettings(s);
 
-    newSettings.focus =
-      newSettings.focusScoring +
-      newSettings.focusPassing +
-      newSettings.focusDefense;
-
-    setSettings(newSettings);
-
-    // normalize after
     setTimeout(() => {
       normalizeGroup([
         "accuracy","shootingSpeed","intakeSpeed",
@@ -193,28 +181,55 @@ export default function AccountSettings() {
     alert("Calibration complete");
   };
 
-  // 🔥 PRESETS
+  // PRESETS
   const applyPreset = (preset) => {
     setSettings(prev => ({ ...prev, ...preset }));
   };
 
-  // 🔥 TOTAL DISPLAY
-  const total = (fields) =>
-    fields.reduce((sum, f) => sum + settings[f], 0);
+  const savePreset = () => {
+    if (!presetName) return alert("Name it");
 
-  const totalDisplay = (label, value) => (
+    const updated = { ...presets, [presetName]: settings };
+    setPresets(updated);
+    localStorage.setItem("scoringPresets", JSON.stringify(updated));
+    setPresetName("");
+  };
+
+  const loadPreset = (name) => setSettings(presets[name]);
+
+  // IMPORT / EXPORT
+  const exportSettings = () => {
+    navigator.clipboard.writeText(JSON.stringify(settings));
+    alert("Copied!");
+  };
+
+  const importSettings = () => {
+    const data = prompt("Paste JSON");
+    if (!data) return;
+    try { setSettings(JSON.parse(data)); }
+    catch { alert("Invalid"); }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("user");
+    window.location.href = "/";
+  };
+
+  const total = (fields) =>
+    fields.reduce((s, f) => s + settings[f], 0);
+
+  const totalDisplay = (val) => (
     <p style={{
-      color: Math.abs(value - 1) > 0.01 ? "red" : "lime",
-      fontWeight: "bold"
+      color: Math.abs(val - 1) > 0.01 ? "red" : "lime"
     }}>
-      {label}: {(value * 100).toFixed(0)}%
+      Total: {(val * 100).toFixed(0)}%
     </p>
   );
 
   const slider = (label, field, percent = true) => (
-    <div style={{ marginBottom: "10px" }}>
+    <div>
       <p>{label}: {percent
-        ? (settings[field] * 100).toFixed(0) + "%"
+        ? (settings[field]*100).toFixed(0)+"%"
         : settings[field].toFixed(2)}</p>
       <input
         type="range"
@@ -222,134 +237,101 @@ export default function AccountSettings() {
         max={percent ? "1" : "2"}
         step="0.05"
         value={settings[field]}
-        onChange={(e) => handleChange(field, e.target.value)}
-        style={{ width: "100%" }}
+        onChange={(e)=>handleChange(field,e.target.value)}
+        style={{width:"100%"}}
       />
     </div>
   );
 
   return (
-    <div style={{ padding: "15px", color: "white" }}>
+    <div style={{padding:"15px",color:"white"}}>
+
       <h2>Account Settings</h2>
 
       {/* CALIBRATION */}
       <div style={box}>
         <h3>Calibration</h3>
+
         <input
-          placeholder="Enter team (frc####)"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              setSelectedTeams([...selectedTeams, e.target.value]);
-              e.target.value = "";
-            }
-          }}
+          value={teamInput}
+          onChange={(e)=>setTeamInput(e.target.value)}
+          placeholder="frc####"
         />
+
+        <button onClick={()=>{
+          if(!teamInput) return;
+          setSelectedTeams([...selectedTeams, teamInput]);
+          setTeamInput("");
+        }}>Add Team</button>
+
         <div>
-          {selectedTeams.map(t => (
-            <span key={t} style={{ margin: "5px" }}>{t}</span>
+          {selectedTeams.map(t=>(
+            <span key={t} style={{margin:"5px"}}>{t}</span>
           ))}
         </div>
-        <button onClick={calibrate} style={btnSmall}>
-          Run Calibration
-        </button>
+
+        <button onClick={calibrate}>Run Calibration</button>
+      </div>
+
+      {/* PRESETS */}
+      <div style={box}>
+        <h3>Presets</h3>
+        <button onClick={()=>applyPreset(defaultSettings)}>Balanced</button>
+
+        <input
+          placeholder="Preset name"
+          value={presetName}
+          onChange={(e)=>setPresetName(e.target.value)}
+        />
+        <button onClick={savePreset}>Save</button>
+
+        {Object.keys(presets).map(p=>(
+          <button key={p} onClick={()=>loadPreset(p)}>
+            {p}
+          </button>
+        ))}
       </div>
 
       {/* MAIN */}
       <div style={box}>
         <h3>Main</h3>
-        {totalDisplay("Total", total([
+        {totalDisplay(total([
           "accuracy","shootingSpeed","intakeSpeed",
           "auton","climb","awareness","focus","robotType"
         ]))}
 
-        {slider("Accuracy", "accuracy")}
-        {slider("Shooting Speed", "shootingSpeed")}
-        {slider("Intake Speed", "intakeSpeed")}
-        {slider("Auton", "auton")}
-        {slider("Climb", "climb")}
-        {slider("Awareness", "awareness")}
-        {slider("Focus", "focus")}
-        {slider("Robot Type", "robotType")}
+        {slider("Accuracy","accuracy")}
+        {slider("Shooting Speed","shootingSpeed")}
+        {slider("Intake Speed","intakeSpeed")}
+        {slider("Auton","auton")}
+        {slider("Climb","climb")}
+        {slider("Awareness","awareness")}
+        {slider("Focus","focus")}
+        {slider("Robot Type","robotType")}
 
-        <button onClick={() =>
-          normalizeGroup([
-            "accuracy","shootingSpeed","intakeSpeed",
-            "auton","climb","awareness","focus","robotType"
-          ])
-        } style={btnSmall}>Normalize</button>
+        <button onClick={()=>normalizeGroup([
+          "accuracy","shootingSpeed","intakeSpeed",
+          "auton","climb","awareness","focus","robotType"
+        ])}>Normalize</button>
       </div>
 
-      {/* AUTON */}
+      {/* IMPORT EXPORT */}
       <div style={box}>
-        <h3>Auton</h3>
-        {totalDisplay("Total", total([
-          "autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"
-        ]))}
-
-        {slider("Shoot", "autonShoot", false)}
-        {slider("Middle", "autonCollectMiddle", false)}
-        {slider("Depot", "autonCollectDepot", false)}
-        {slider("Climb", "autonClimb", false)}
-
-        <button onClick={() =>
-          normalizeGroup([
-            "autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"
-          ])
-        } style={btnSmall}>Normalize</button>
+        <button onClick={exportSettings}>Export</button>
+        <button onClick={importSettings}>Import</button>
       </div>
 
-      {/* FOCUS */}
-      <div style={box}>
-        <h3>Focus</h3>
-        {totalDisplay("Total", total([
-          "focusScoring","focusPassing","focusDefense"
-        ]))}
+      <button onClick={logout} style={{background:"red"}}>
+        Logout
+      </button>
 
-        {slider("Scoring", "focusScoring", false)}
-        {slider("Passing", "focusPassing", false)}
-        {slider("Defense", "focusDefense", false)}
-
-        <button onClick={() =>
-          normalizeGroup([
-            "focusScoring","focusPassing","focusDefense"
-          ])
-        } style={btnSmall}>Normalize</button>
-      </div>
-
-      {/* FAILURES */}
-      <div style={box}>
-        <h3>Failures</h3>
-        {totalDisplay("Total", total([
-          "failureLostComm","failureLostPower","failureBrokenIntake"
-        ]))}
-
-        {slider("Lost Comm", "failureLostComm", false)}
-        {slider("Lost Power", "failureLostPower", false)}
-        {slider("Broken Intake", "failureBrokenIntake", false)}
-        {slider("Penalty Strength", "failurePenalty")}
-
-        <button onClick={() =>
-          normalizeGroup([
-            "failureLostComm","failureLostPower","failureBrokenIntake"
-          ])
-        } style={btnSmall}>Normalize</button>
-      </div>
     </div>
   );
 }
 
 const box = {
-  background: "#1e1e1e",
-  padding: "15px",
-  borderRadius: "12px",
-  marginBottom: "15px"
-};
-
-const btnSmall = {
-  marginTop: "10px",
-  padding: "10px",
-  background: "#333",
-  color: "white",
-  border: "none",
-  borderRadius: "8px"
+  background:"#1e1e1e",
+  padding:"15px",
+  marginBottom:"15px",
+  borderRadius:"10px"
 };
