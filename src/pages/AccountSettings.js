@@ -32,7 +32,7 @@ export default function AccountSettings() {
   const [presets, setPresets] = useState({});
   const [teamsInput, setTeamsInput] = useState("");
 
-  // LOAD
+  // 🔥 LOAD
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("scoringSettings"));
     const savedPresets = JSON.parse(localStorage.getItem("scoringPresets")) || {};
@@ -41,120 +41,77 @@ export default function AccountSettings() {
     setPresets(savedPresets);
   }, []);
 
-  // AUTOSAVE
+  // 🔥 AUTO NORMALIZE FUNCTION
+  const normalize = (obj, fields) => {
+    const total = fields.reduce((sum, f) => sum + obj[f], 0);
+    if (total === 0) return obj;
+
+    const updated = { ...obj };
+    fields.forEach(f => updated[f] = obj[f] / total);
+    return updated;
+  };
+
+  // 🔥 AUTO NORMALIZE ON CHANGE
   useEffect(() => {
-    localStorage.setItem("scoringSettings", JSON.stringify(settings));
-  }, [settings]);
+    let updated = { ...settings };
+
+    updated = normalize(updated, ["accuracy","shootingSpeed","intakeSpeed","auton","climb","awareness","focus","robotType"]);
+    updated = normalize(updated, ["autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"]);
+    updated = normalize(updated, ["focusScoring","focusPassing","focusDefense"]);
+    updated = normalize(updated, ["failureLostComm","failureLostPower","failureBrokenIntake"]);
+
+    localStorage.setItem("scoringSettings", JSON.stringify(updated));
+    setSettings(updated);
+
+  }, [
+    settings.accuracy,
+    settings.shootingSpeed,
+    settings.intakeSpeed,
+    settings.auton,
+    settings.climb,
+    settings.awareness,
+    settings.focus,
+    settings.robotType,
+
+    settings.autonShoot,
+    settings.autonCollectMiddle,
+    settings.autonCollectDepot,
+    settings.autonClimb,
+
+    settings.focusScoring,
+    settings.focusPassing,
+    settings.focusDefense,
+
+    settings.failureLostComm,
+    settings.failureLostPower,
+    settings.failureBrokenIntake
+  ]);
 
   const handleChange = (field, value) => {
     setSettings(prev => ({
       ...prev,
-      [field]: Number(value) || 0
+      [field]: Number(value)
     }));
   };
 
-  // SLIDER (FIXED)
-  const slider = (label, field) => (
-    <div style={{ marginBottom: "10px" }}>
-      <p>{label}: {(settings[field] * 100).toFixed(0)}%</p>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={settings[field] ?? 0}
-        onChange={(e) => handleChange(field, e.target.value)}
-        style={{ width: "100%" }}
-      />
-    </div>
-  );
-
-  // NORMALIZE
-  const normalizeGroup = (fields) => {
-    const total = fields.reduce((sum, f) => sum + settings[f], 0);
-    if (total === 0) return;
-
-    const updated = { ...settings };
-    fields.forEach(f => updated[f] = settings[f] / total);
-    setSettings(updated);
-  };
-
-  const total = (fields) =>
-    fields.reduce((sum, f) => sum + settings[f], 0);
-
-  const totalDisplay = (label, value) => (
-    <p style={{
-      color: Math.abs(value - 1) > 0.01 ? "red" : "lime",
-      fontWeight: "bold"
-    }}>
-      {label}: {(value * 100).toFixed(0)}%
-    </p>
-  );
-
-  // PRESETS
-  const applyPreset = (preset) => setSettings(preset);
-
-  const savePreset = () => {
-    if (!presetName) return alert("Enter name");
-    const updated = { ...presets, [presetName]: settings };
-    setPresets(updated);
-    localStorage.setItem("scoringPresets", JSON.stringify(updated));
-    setPresetName("");
-  };
-
-  const loadPreset = (name) => setSettings(presets[name]);
-
-  // IMPORT / EXPORT (SAFE)
-  const exportSettings = () => {
-    navigator.clipboard.writeText(JSON.stringify(settings));
-    alert("Copied!");
-  };
-
-  const importSettings = () => {
-    const data = prompt("Paste JSON");
-    if (!data) return; // 🔥 FIX CRASH
-
-    try {
-      setSettings(JSON.parse(data));
-    } catch {
-      alert("Invalid JSON");
-    }
-  };
-
-  // LOGOUT
-  const logout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
-
-  // 🔥 CALIBRATION (FIXED + FULL)
+  // 🔥 CALIBRATION (AVERAGE TEAM)
   const runCalibration = () => {
-
-    const selectedTeams = teamsInput
+    const teams = teamsInput
       .split(",")
       .map(t => t.trim())
-      .filter(Boolean);
+      .filter(t => t !== "")
+      .map(t => t.startsWith("frc") ? t : `frc${t}`);
 
-    if (selectedTeams.length === 0) {
-      alert("Enter teams");
-      return;
-    }
+    if (teams.length === 0) return alert("Enter teams");
 
     const eventKey = localStorage.getItem("selectedEvent");
     const data = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-    const normalizedTeams = selectedTeams.map(t =>
-      t.startsWith("frc") ? t : `frc${t}`
+    const filtered = data.filter(d =>
+      d.event === eventKey && teams.includes(d.team)
     );
 
-    const filtered = data.filter(
-      d => d.event === eventKey && normalizedTeams.includes(d.team)
-    );
-
-    if (filtered.length === 0) {
-      alert("No data found");
-      return;
-    }
+    if (filtered.length === 0) return alert("No data");
 
     const avg = {
       accuracy: 0,
@@ -162,7 +119,6 @@ export default function AccountSettings() {
       intakeSpeed: 0,
       awareness: 0,
       climb: 0,
-      robotType: 0,
 
       autonShoot: 0,
       autonCollectMiddle: 0,
@@ -175,7 +131,9 @@ export default function AccountSettings() {
 
       failureLostComm: 0,
       failureLostPower: 0,
-      failureBrokenIntake: 0
+      failureBrokenIntake: 0,
+
+      robotType: 0
     };
 
     filtered.forEach(e => {
@@ -184,9 +142,11 @@ export default function AccountSettings() {
       avg.intakeSpeed += Number(e.intakeSpeed || 0);
 
       if (e.awareness === "Yes") avg.awareness += 1;
-      if (e.climb?.includes("L3")) avg.climb += 1;
+      else if (e.awareness === "Kind of Lost") avg.awareness += 0.5;
 
-      if (e.robotType?.includes("Custom")) avg.robotType += 1;
+      if (e.climb?.includes("L3")) avg.climb += 1;
+      else if (e.climb?.includes("L2")) avg.climb += 0.7;
+      else if (e.climb?.includes("L1")) avg.climb += 0.4;
 
       if (e.auton?.includes("Shoot")) avg.autonShoot += 1;
       if (e.auton?.includes("Collect Middle")) avg.autonCollectMiddle += 1;
@@ -200,43 +160,94 @@ export default function AccountSettings() {
       if (e.failures?.includes("Lost Communication")) avg.failureLostComm += 1;
       if (e.failures?.includes("Lost Power")) avg.failureLostPower += 1;
       if (e.failures?.includes("Broken Intake")) avg.failureBrokenIntake += 1;
+
+      if (e.robotType?.includes("Custom")) avg.robotType += 1;
     });
 
     const count = filtered.length;
+
     Object.keys(avg).forEach(k => avg[k] /= count);
 
-    const invert = (v) => 1 - Math.min(1, v);
+    const invert = (v) => 1 - Math.min(1, v / 5);
 
-    const newSettings = {
-      ...settings,
+    let newSettings = { ...settings };
 
-      accuracy: invert(avg.accuracy / 5),
-      shootingSpeed: invert(avg.shootingSpeed / 5),
-      intakeSpeed: invert(avg.intakeSpeed / 5),
+    newSettings.accuracy = invert(avg.accuracy);
+    newSettings.shootingSpeed = invert(avg.shootingSpeed);
+    newSettings.intakeSpeed = invert(avg.intakeSpeed);
+    newSettings.awareness = 1 - avg.awareness;
+    newSettings.climb = 1 - avg.climb;
+    newSettings.robotType = 1 - avg.robotType;
 
-      awareness: invert(avg.awareness),
-      climb: invert(avg.climb),
-      robotType: invert(avg.robotType),
+    newSettings.autonShoot = 1 - avg.autonShoot;
+    newSettings.autonCollectMiddle = 1 - avg.autonCollectMiddle;
+    newSettings.autonCollectDepot = 1 - avg.autonCollectDepot;
+    newSettings.autonClimb = 1 - avg.autonClimb;
 
-      autonShoot: invert(avg.autonShoot),
-      autonCollectMiddle: invert(avg.autonCollectMiddle),
-      autonCollectDepot: invert(avg.autonCollectDepot),
-      autonClimb: invert(avg.autonClimb),
+    newSettings.focusScoring = 1 - avg.focusScoring;
+    newSettings.focusPassing = 1 - avg.focusPassing;
+    newSettings.focusDefense = 1 - avg.focusDefense;
 
-      focusScoring: invert(avg.focusScoring),
-      focusPassing: invert(avg.focusPassing),
-      focusDefense: invert(avg.focusDefense),
-
-      failureLostComm: avg.failureLostComm,
-      failureLostPower: avg.failureLostPower,
-      failureBrokenIntake: avg.failureBrokenIntake
-    };
+    newSettings.failureLostComm = avg.failureLostComm;
+    newSettings.failureLostPower = avg.failureLostPower;
+    newSettings.failureBrokenIntake = avg.failureBrokenIntake;
 
     setSettings(newSettings);
   };
 
+  // 🔥 PRESETS
+  const applyPreset = (preset) => {
+    setSettings(prev => ({ ...prev, ...preset }));
+  };
+
+  const savePreset = () => {
+    if (!presetName) return;
+
+    const updated = { ...presets, [presetName]: settings };
+    setPresets(updated);
+    localStorage.setItem("scoringPresets", JSON.stringify(updated));
+    setPresetName("");
+  };
+
+  const loadPreset = (name) => setSettings(presets[name]);
+
+  const exportSettings = () => {
+    navigator.clipboard.writeText(JSON.stringify(settings));
+    alert("Copied!");
+  };
+
+  const importSettings = () => {
+    const data = prompt("Paste JSON");
+    if (!data) return;
+    try {
+      setSettings(JSON.parse(data));
+    } catch {
+      alert("Invalid JSON");
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("user");
+    window.location.href = "/";
+  };
+
+  const slider = (label, field) => (
+    <div style={{ marginBottom: "10px" }}>
+      <p>{label}: {(settings[field] * 100).toFixed(0)}%</p>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={settings[field]}
+        onChange={(e) => handleChange(field, e.target.value)}
+        style={{ width: "100%" }}
+      />
+    </div>
+  );
+
   return (
-    <div style={{ padding: "15px", color: "white" }}>
+    <div style={{ padding:"15px", color:"white" }}>
       <h2>Account Settings</h2>
 
       {/* CALIBRATION */}
@@ -245,7 +256,7 @@ export default function AccountSettings() {
         <input
           placeholder="1234, 254, 1678"
           value={teamsInput}
-          onChange={(e) => setTeamsInput(e.target.value)}
+          onChange={(e)=>setTeamsInput(e.target.value)}
         />
         <button onClick={runCalibration} style={btn}>Calibrate</button>
       </div>
@@ -253,22 +264,19 @@ export default function AccountSettings() {
       {/* PRESETS */}
       <div style={box}>
         <h3>Presets</h3>
-        <button onClick={() => applyPreset(defaultSettings)} style={btnSmall}>Balanced</button>
+        <button onClick={()=>applyPreset(defaultSettings)} style={btnSmall}>Balanced</button>
 
         <input value={presetName} onChange={(e)=>setPresetName(e.target.value)} placeholder="Preset name"/>
         <button onClick={savePreset} style={btnSmall}>Save</button>
 
         {Object.keys(presets).map(p=>(
-          <button key={p} onClick={()=>loadPreset(p)} style={btnSmall}>
-            {p}
-          </button>
+          <button key={p} onClick={()=>loadPreset(p)} style={btnSmall}>{p}</button>
         ))}
       </div>
 
       {/* MAIN */}
       <div style={box}>
         <h3>Main</h3>
-        {totalDisplay("Total", total(["accuracy","shootingSpeed","intakeSpeed","auton","climb","awareness","focus","robotType"]))}
         {slider("Accuracy","accuracy")}
         {slider("Shooting","shootingSpeed")}
         {slider("Intake","intakeSpeed")}
@@ -277,6 +285,32 @@ export default function AccountSettings() {
         {slider("Awareness","awareness")}
         {slider("Focus","focus")}
         {slider("Robot Type","robotType")}
+      </div>
+
+      {/* AUTON */}
+      <div style={box}>
+        <h3>Auton</h3>
+        {slider("Shoot","autonShoot")}
+        {slider("Middle","autonCollectMiddle")}
+        {slider("Depot","autonCollectDepot")}
+        {slider("Climb","autonClimb")}
+      </div>
+
+      {/* FOCUS */}
+      <div style={box}>
+        <h3>Focus</h3>
+        {slider("Scoring","focusScoring")}
+        {slider("Passing","focusPassing")}
+        {slider("Defense","focusDefense")}
+      </div>
+
+      {/* FAILURES */}
+      <div style={box}>
+        <h3>Failures</h3>
+        {slider("Lost Comm","failureLostComm")}
+        {slider("Lost Power","failureLostPower")}
+        {slider("Broken Intake","failureBrokenIntake")}
+        {slider("Penalty","failurePenalty")}
       </div>
 
       <div style={box}>
