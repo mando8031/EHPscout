@@ -1,142 +1,145 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 
-const AccountSettings = () => {
+export default function AccountSettings() {
 
-const navigate = useNavigate();
-const user = auth.currentUser;
+  const defaultSettings = {
+    accuracy: 0.3,
+    shootingSpeed: 0.2,
+    intakeSpeed: 0.2,
+    auton: 0.1,
+    climb: 0.1,
+    awareness: 0.1,
+    failurePenalty: 0.2
+  };
 
-const [role, setRole] = useState("");
-const [teamName, setTeamName] = useState("");
+  const [settings, setSettings] = useState(defaultSettings);
 
-useEffect(() => {
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("scoringSettings"));
+    if (saved) setSettings(saved);
+  }, []);
 
+  const handleChange = (field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [field]: Number(value)
+    }));
+  };
 
-async function loadUserData() {
+  const totalWeight =
+    settings.accuracy +
+    settings.shootingSpeed +
+    settings.intakeSpeed +
+    settings.auton +
+    settings.climb +
+    settings.awareness;
 
-  if (!user) return;
+  const saveSettings = () => {
 
-  try {
-
-    const userSnap = await getDoc(doc(db, "users", user.uid));
-
-    if (!userSnap.exists()) return;
-
-    const userData = userSnap.data();
-
-    setRole(userData.role || "scout");
-
-    if (userData.teamId) {
-
-      const teamSnap = await getDoc(doc(db, "teams", userData.teamId));
-
-      if (teamSnap.exists()) {
-        setTeamName(teamSnap.data().name || "");
-      }
-
+    if (totalWeight === 0) {
+      return alert("Weights cannot all be zero");
     }
 
-  } catch (err) {
-    console.error("Load account data error:", err);
-  }
+    localStorage.setItem("scoringSettings", JSON.stringify(settings));
+    alert("Settings saved!");
+  };
 
+  const resetDefaults = () => {
+    setSettings(defaultSettings);
+    localStorage.setItem("scoringSettings", JSON.stringify(defaultSettings));
+  };
+
+  const logout = () => {
+    localStorage.removeItem("user");
+    window.location.href = "/";
+  };
+
+  const slider = (label, field) => (
+    <div style={{ marginBottom: "15px" }}>
+      <p>{label}: {(settings[field] * 100).toFixed(0)}%</p>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={settings[field]}
+        onChange={(e) => handleChange(field, e.target.value)}
+        style={{ width: "100%" }}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "15px", color: "white" }}>
+
+      <h2>Account Settings</h2>
+
+      {/* SCORING */}
+      <div style={{
+        background: "#1e1e1e",
+        padding: "15px",
+        borderRadius: "12px",
+        marginBottom: "20px"
+      }}>
+        <h3>Scoring Weights</h3>
+
+        {slider("Accuracy", "accuracy")}
+        {slider("Shooting Speed", "shootingSpeed")}
+        {slider("Intake Speed", "intakeSpeed")}
+        {slider("Auton", "auton")}
+        {slider("Climb", "climb")}
+        {slider("Awareness", "awareness")}
+
+        {/* 🔥 TOTAL DISPLAY */}
+        <div style={{
+          marginTop: "15px",
+          padding: "10px",
+          borderRadius: "8px",
+          background: totalWeight > 1 ? "#8b0000" : "#333"
+        }}>
+          <b>Total Weight: {(totalWeight * 100).toFixed(0)}%</b>
+          <p style={{ fontSize: "12px", opacity: 0.7 }}>
+            Ideally this should be ~100%
+          </p>
+        </div>
+
+        {/* FAILURE */}
+        <h3 style={{ marginTop: "20px" }}>Failure Penalty</h3>
+        {slider("Penalty Strength", "failurePenalty")}
+
+        <button onClick={saveSettings} style={btnStyle}>
+          Save Settings
+        </button>
+
+        <button onClick={resetDefaults} style={btnStyle}>
+          Reset Defaults
+        </button>
+      </div>
+
+      {/* ACCOUNT */}
+      <div style={{
+        background: "#1e1e1e",
+        padding: "15px",
+        borderRadius: "12px"
+      }}>
+        <h3>Account</h3>
+
+        <button onClick={logout} style={{ ...btnStyle, background: "#c62828" }}>
+          Log Out
+        </button>
+      </div>
+
+    </div>
+  );
 }
 
-loadUserData();
-
-
-}, [user]);
-
-async function handleSignOut() {
-try {
-await signOut(auth);
-navigate("/login");
-} catch (err) {
-console.error("Sign out error:", err);
-alert("Failed to sign out");
-}
-}
-
-//  KEEP EXISTING DELETE LOGIC
-async function handleDeleteAccount() {
-
-
-if (!user) return;
-
-const confirmDelete = window.confirm("Are you sure you want to delete your account?");
-
-if (!confirmDelete) return;
-
-try {
-
-  // delete user doc
-  await deleteDoc(doc(db, "users", user.uid));
-
-  // delete auth account
-  await deleteUser(user);
-
-  navigate("/login");
-
-} catch (err) {
-
-  console.error("Delete account error:", err);
-  alert("Failed to delete account");
-
-}
-
-
-}
-
-return (
-
-
-<div style={{ maxWidth: "500px", margin: "auto" }}>
-
-  <h1>Account Settings</h1>
-
-  <div style={{
-    border: "1px solid #444",
-    padding: "20px",
-    marginBottom: "20px"
-  }}>
-
-    <h2>User Info</h2>
-
-    <p>Email: {user?.email || "N/A"}</p>
-    <p>User ID: {user?.uid}</p>
-    <p>Role: {role}</p>
-    <p>Team: {teamName || "No team"}</p>
-
-  </div>
-
-  {/* SIGN OUT */}
-  <button
-    onClick={handleSignOut}
-    style={{
-      width: "100%",
-      padding: "12px",
-      marginBottom: "10px"
-    }}
-  >
-    Sign Out
-  </button>
-
-  {/* DELETE ACCOUNT (UNCHANGED BEHAVIOR) */}
-  <button
-    onClick={handleDeleteAccount}
-    style={{
-      width: "100%",
-      padding: "12px"
-    }}
-  >
-    Delete Account
-  </button>
-
-</div>
-
-
-);
-
+const btnStyle = {
+  width: "100%",
+  padding: "12px",
+  marginTop: "10px",
+  border: "none",
+  borderRadius: "10px",
+  background: "#2d8cf0",
+  color: "white",
+  fontSize: "16px"
 };
-
-export default AccountSettings;
