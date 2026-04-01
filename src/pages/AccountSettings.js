@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 export default function AccountSettings() {
 
   const defaultSettings = {
-    accuracy: 0.1818,
-    shootingSpeed: 0.1818,
-    intakeSpeed: 0.1818,
+    accuracy: 0.18,
+    shootingSpeed: 0.18,
+    intakeSpeed: 0.18,
     auton: 0.1,
     climb: 0.05,
     awareness: 0.1,
@@ -13,31 +13,26 @@ export default function AccountSettings() {
     robotType: 0.1,
     failurePenalty: 0.1,
 
-    // AUTON
     autonShoot: 0.25,
     autonCollectMiddle: 0.25,
     autonCollectDepot: 0.25,
     autonClimb: 0.25,
 
-    // FOCUS
-    focusScoring: 0.3333,
-    focusPassing: 0.3333,
-    focusDefense: 0.3333,
+    focusScoring: 0.33,
+    focusPassing: 0.33,
+    focusDefense: 0.33,
 
-    // FAILURES
-    failureLostComm: 0.3333,
-    failureLostPower: 0.3333,
-    failureBrokenIntake: 0.3333
+    failureLostComm: 0.33,
+    failureLostPower: 0.33,
+    failureBrokenIntake: 0.33
   };
 
   const [settings, setSettings] = useState(defaultSettings);
-  const [presets, setPresets] = useState({});
   const [presetName, setPresetName] = useState("");
+  const [presets, setPresets] = useState({});
+  const [selectedTeams, setSelectedTeams] = useState([]);
 
-  const [calibrationTeams, setCalibrationTeams] = useState([]);
-  const [teamInput, setTeamInput] = useState("");
-
-  // LOAD
+  // 🔥 LOAD
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("scoringSettings"));
     const savedPresets = JSON.parse(localStorage.getItem("scoringPresets")) || {};
@@ -46,7 +41,7 @@ export default function AccountSettings() {
     setPresets(savedPresets);
   }, []);
 
-  // AUTO SAVE
+  // 🔥 AUTOSAVE
   useEffect(() => {
     localStorage.setItem("scoringSettings", JSON.stringify(settings));
   }, [settings]);
@@ -58,16 +53,152 @@ export default function AccountSettings() {
     }));
   };
 
-  // NORMALIZE
+  // 🔥 NORMALIZE
   const normalizeGroup = (fields) => {
-    const total = fields.reduce((sum, f) => sum + settings[f], 0);
-    if (total === 0) return;
+    let total = fields.reduce((sum, f) => sum + settings[f], 0);
+    if (total === 0) total = 1;
 
     const updated = { ...settings };
-    fields.forEach(f => updated[f] = settings[f] / total);
+    fields.forEach(f => {
+      updated[f] = settings[f] / total;
+    });
+
     setSettings(updated);
   };
 
+  // 🔥 CALIBRATION (FULL)
+  const calibrate = () => {
+    const selectedEvent = localStorage.getItem("selectedEvent");
+    if (!selectedEvent) return alert("Select event first");
+
+    const data = JSON.parse(localStorage.getItem("scoutingData") || "[]")
+      .filter(d => d.event === selectedEvent);
+
+    if (data.length === 0) return alert("No data");
+
+    const grouped = {};
+    data.forEach(e => {
+      if (!grouped[e.team]) grouped[e.team] = [];
+      grouped[e.team].push(e);
+    });
+
+    const teams = Object.keys(grouped).map(team => ({
+      team,
+      entries: grouped[team]
+    }));
+
+    const selectedSet = new Set(selectedTeams);
+    const topTeams = teams.filter(t => selectedSet.has(t.team));
+    const otherTeams = teams.filter(t => !selectedSet.has(t.team));
+
+    if (topTeams.length === 0) return alert("Pick top teams");
+
+    const avg = (entries, fn) =>
+      entries.reduce((sum, e) => sum + fn(e), 0) / entries.length;
+
+    const diff = (fn) => {
+      const top = avg(topTeams.flatMap(t => t.entries), fn);
+      const other = avg(otherTeams.flatMap(t => t.entries), fn);
+      return Math.max(0.01, top - other);
+    };
+
+    let newSettings = { ...settings };
+
+    // MAIN
+    newSettings.accuracy = diff(e => Number(e.accuracy || 0));
+    newSettings.shootingSpeed = diff(e => Number(e.shootingSpeed || 0));
+    newSettings.intakeSpeed = diff(e => Number(e.intakeSpeed || 0));
+
+    newSettings.awareness = diff(e =>
+      e.awareness === "Yes" ? 1 : e.awareness === "Kind of Lost" ? 0.5 : 0
+    );
+
+    newSettings.climb = diff(e =>
+      e.climb?.includes("L3") ? 1 :
+      e.climb?.includes("L2") ? 0.7 :
+      e.climb?.includes("L1") ? 0.4 : 0
+    );
+
+    newSettings.robotType = diff(e =>
+      e.robotType?.includes("Custom") ? 1 :
+      e.robotType?.includes("Kitbot") ? 0 : 0.5
+    );
+
+    // AUTON
+    const autonMap = {
+      autonShoot: "Shoot",
+      autonCollectMiddle: "Collect Middle",
+      autonCollectDepot: "Collect Depot",
+      autonClimb: "Climb"
+    };
+
+    Object.entries(autonMap).forEach(([k, v]) => {
+      newSettings[k] = diff(e => e.auton?.includes(v) ? 1 : 0);
+    });
+
+    // FOCUS
+    const focusMap = {
+      focusScoring: "Scoring",
+      focusPassing: "Passing / Moving Balls",
+      focusDefense: "Defense"
+    };
+
+    Object.entries(focusMap).forEach(([k, v]) => {
+      newSettings[k] = diff(e => e.focus?.includes(v) ? 1 : 0);
+    });
+
+    // FAILURES (inverted)
+    const failMap = {
+      failureLostComm: "Lost Communication",
+      failureLostPower: "Lost Power",
+      failureBrokenIntake: "Broken Intake"
+    };
+
+    Object.entries(failMap).forEach(([k, v]) => {
+      const d = diff(e => e.failures?.includes(v) ? 1 : 0);
+      newSettings[k] = 1 / d;
+    });
+
+    // RECALC MAIN
+    newSettings.auton =
+      newSettings.autonShoot +
+      newSettings.autonCollectMiddle +
+      newSettings.autonCollectDepot +
+      newSettings.autonClimb;
+
+    newSettings.focus =
+      newSettings.focusScoring +
+      newSettings.focusPassing +
+      newSettings.focusDefense;
+
+    setSettings(newSettings);
+
+    // normalize after
+    setTimeout(() => {
+      normalizeGroup([
+        "accuracy","shootingSpeed","intakeSpeed",
+        "auton","climb","awareness","focus","robotType"
+      ]);
+      normalizeGroup([
+        "autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"
+      ]);
+      normalizeGroup([
+        "focusScoring","focusPassing","focusDefense"
+      ]);
+      normalizeGroup([
+        "failureLostComm","failureLostPower","failureBrokenIntake"
+      ]);
+    }, 50);
+
+    alert("Calibration complete");
+  };
+
+  // 🔥 PRESETS
+  const applyPreset = (preset) => {
+    setSettings(prev => ({ ...prev, ...preset }));
+  };
+
+  // 🔥 TOTAL DISPLAY
   const total = (fields) =>
     fields.reduce((sum, f) => sum + settings[f], 0);
 
@@ -82,11 +213,9 @@ export default function AccountSettings() {
 
   const slider = (label, field, percent = true) => (
     <div style={{ marginBottom: "10px" }}>
-      <p>
-        {label}: {percent
-          ? (settings[field] * 100).toFixed(0) + "%"
-          : settings[field].toFixed(2)}
-      </p>
+      <p>{label}: {percent
+        ? (settings[field] * 100).toFixed(0) + "%"
+        : settings[field].toFixed(2)}</p>
       <input
         type="range"
         min="0"
@@ -99,150 +228,35 @@ export default function AccountSettings() {
     </div>
   );
 
-  // PRESETS
-  const applyPreset = (type) => {
-    const presetMap = {
-      balanced: {
-        accuracy: 0.18181818181818182,
-        shootingSpeed: 0.18181818181818182,
-        intakeSpeed: 0.18181818181818182,
-        auton: 0.1,
-        climb: 0.05,
-        awareness: 0.1,
-        focus: 0.1,
-        robotType: 0.1,
-        failurePenalty: 0.1,
-
-        autonShoot: 0.25,
-        autonCollectMiddle: 0.25,
-        autonCollectDepot: 0.25,
-        autonClimb: 0.25,
-
-        focusScoring: 0.3333333333333333,
-        focusPassing: 0.3333333333333333,
-        focusDefense: 0.3333333333333333,
-
-        failureLostComm: 0.3333333333333333,
-        failureLostPower: 0.3333333333333333,
-        failureBrokenIntake: 0.3333333333333333
-      },
-
-      offense: {
-        accuracy: 0.15,
-        shootingSpeed: 0.2,
-        intakeSpeed: 0.2,
-        auton: 0.1,
-        climb: 0.05,
-        awareness: 0.1,
-        focus: 0.1,
-        robotType: 0.1,
-        failurePenalty: 0.1,
-
-        autonShoot: 0.4,
-        autonCollectMiddle: 0.2,
-        autonCollectDepot: 0.2,
-        autonClimb: 0.2,
-
-        focusScoring: 0.7142857142857143,
-        focusPassing: 0.14285714285714285,
-        focusDefense: 0.14285714285714285,
-
-        failureLostComm: 0.5,
-        failureLostPower: 0.25,
-        failureBrokenIntake: 0.25
-      },
-
-      defense: {
-        accuracy: 0.1,
-        shootingSpeed: 0.1,
-        intakeSpeed: 0.1,
-        auton: 0.05,
-        climb: 0.2,
-        awareness: 0.2,
-        focus: 0.2,
-        robotType: 0.05,
-        failurePenalty: 0.2,
-
-        autonShoot: 0.15,
-        autonCollectMiddle: 0.15,
-        autonCollectDepot: 0.15,
-        autonClimb: 0.55,
-
-        focusScoring: 0.1,
-        focusPassing: 0.2,
-        focusDefense: 0.7,
-
-        failureLostComm: 0.5,
-        failureLostPower: 0.4,
-        failureBrokenIntake: 0.1
-      }
-    };
-
-    setSettings(presetMap[type]);
-  };
-
-  const savePreset = () => {
-    if (!presetName) return alert("Enter name");
-
-    const updated = { ...presets, [presetName]: settings };
-    setPresets(updated);
-    localStorage.setItem("scoringPresets", JSON.stringify(updated));
-    setPresetName("");
-  };
-
-  const loadPreset = (name) => setSettings(presets[name]);
-
-  // CALIBRATION (unchanged)
-  const addTeam = () => {
-    if (!teamInput) return;
-    if (calibrationTeams.length >= 5) return alert("Max 5");
-
-    setCalibrationTeams([...calibrationTeams, teamInput]);
-    setTeamInput("");
-  };
-
-  const runCalibration = () => {
-    const data = JSON.parse(localStorage.getItem("scoutingData") || "[]");
-
-    const filtered = data.filter(d =>
-      calibrationTeams.includes(d.team.replace("frc", ""))
-    );
-
-    if (!filtered.length) return alert("No data");
-
-    let avg = { accuracy: 0, shootingSpeed: 0, intakeSpeed: 0 };
-
-    filtered.forEach(e => {
-      avg.accuracy += Number(e.accuracy || 0);
-      avg.shootingSpeed += Number(e.shootingSpeed || 0);
-      avg.intakeSpeed += Number(e.intakeSpeed || 0);
-    });
-
-    Object.keys(avg).forEach(k => avg[k] /= filtered.length);
-
-    const totalVal = Object.values(avg).reduce((a, b) => a + b, 0);
-
-    const updated = { ...settings };
-    Object.keys(avg).forEach(k => {
-      updated[k] = avg[k] / totalVal;
-    });
-
-    setSettings(updated);
-    alert("Calibration done");
-  };
-
-  const logout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
-
   return (
     <div style={{ padding: "15px", color: "white" }}>
       <h2>Account Settings</h2>
 
+      {/* CALIBRATION */}
+      <div style={box}>
+        <h3>Calibration</h3>
+        <input
+          placeholder="Enter team (frc####)"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setSelectedTeams([...selectedTeams, e.target.value]);
+              e.target.value = "";
+            }
+          }}
+        />
+        <div>
+          {selectedTeams.map(t => (
+            <span key={t} style={{ margin: "5px" }}>{t}</span>
+          ))}
+        </div>
+        <button onClick={calibrate} style={btnSmall}>
+          Run Calibration
+        </button>
+      </div>
+
       {/* MAIN */}
       <div style={box}>
-        <h3>Main Weights</h3>
+        <h3>Main</h3>
         {totalDisplay("Total", total([
           "accuracy","shootingSpeed","intakeSpeed",
           "auton","climb","awareness","focus","robotType"
@@ -262,35 +276,31 @@ export default function AccountSettings() {
             "accuracy","shootingSpeed","intakeSpeed",
             "auton","climb","awareness","focus","robotType"
           ])
-        } style={btnSmall}>
-          Normalize
-        </button>
+        } style={btnSmall}>Normalize</button>
       </div>
 
       {/* AUTON */}
       <div style={box}>
-        <h3>Auton Breakdown</h3>
+        <h3>Auton</h3>
         {totalDisplay("Total", total([
           "autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"
         ]))}
 
         {slider("Shoot", "autonShoot", false)}
-        {slider("Collect Middle", "autonCollectMiddle", false)}
-        {slider("Collect Depot", "autonCollectDepot", false)}
+        {slider("Middle", "autonCollectMiddle", false)}
+        {slider("Depot", "autonCollectDepot", false)}
         {slider("Climb", "autonClimb", false)}
 
         <button onClick={() =>
           normalizeGroup([
             "autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"
           ])
-        } style={btnSmall}>
-          Normalize
-        </button>
+        } style={btnSmall}>Normalize</button>
       </div>
 
-      {/* 🔥 FOCUS (ADDED BACK) */}
+      {/* FOCUS */}
       <div style={box}>
-        <h3>Focus Breakdown</h3>
+        <h3>Focus</h3>
         {totalDisplay("Total", total([
           "focusScoring","focusPassing","focusDefense"
         ]))}
@@ -303,14 +313,12 @@ export default function AccountSettings() {
           normalizeGroup([
             "focusScoring","focusPassing","focusDefense"
           ])
-        } style={btnSmall}>
-          Normalize
-        </button>
+        } style={btnSmall}>Normalize</button>
       </div>
 
-      {/* 🔥 FAILURES (ADDED BACK) */}
+      {/* FAILURES */}
       <div style={box}>
-        <h3>Failure Breakdown</h3>
+        <h3>Failures</h3>
         {totalDisplay("Total", total([
           "failureLostComm","failureLostPower","failureBrokenIntake"
         ]))}
@@ -324,55 +332,8 @@ export default function AccountSettings() {
           normalizeGroup([
             "failureLostComm","failureLostPower","failureBrokenIntake"
           ])
-        } style={btnSmall}>
-          Normalize
-        </button>
+        } style={btnSmall}>Normalize</button>
       </div>
-
-      {/* CALIBRATION */}
-      <div style={box}>
-        <h3>Calibration</h3>
-
-        <input
-          placeholder="Team #"
-          value={teamInput}
-          onChange={(e) => setTeamInput(e.target.value)}
-        />
-        <button onClick={addTeam} style={btnSmall}>Add</button>
-
-        <p>{calibrationTeams.join(", ")}</p>
-
-        <button onClick={runCalibration} style={btnSmall}>
-          Calibrate
-        </button>
-      </div>
-
-      {/* PRESETS */}
-      <div style={box}>
-        <h3>Presets</h3>
-        <button onClick={() => applyPreset("balanced")} style={btnSmall}>Balanced</button>
-        <button onClick={() => applyPreset("offense")} style={btnSmall}>Offense</button>
-        <button onClick={() => applyPreset("defense")} style={btnSmall}>Defense</button>
-
-        <hr />
-
-        <input
-          placeholder="Preset name"
-          value={presetName}
-          onChange={(e) => setPresetName(e.target.value)}
-        />
-        <button onClick={savePreset} style={btnSmall}>Save</button>
-
-        {Object.keys(presets).map(name => (
-          <button key={name} onClick={() => loadPreset(name)} style={btnSmall}>
-            Load {name}
-          </button>
-        ))}
-      </div>
-
-      <button onClick={logout} style={{ ...btn, background: "red" }}>
-        Logout
-      </button>
     </div>
   );
 }
@@ -384,21 +345,11 @@ const box = {
   marginBottom: "15px"
 };
 
-const btn = {
-  width: "100%",
-  padding: "12px",
-  marginTop: "10px",
-  border: "none",
-  borderRadius: "10px",
-  background: "#2d8cf0",
-  color: "white"
-};
-
 const btnSmall = {
-  margin: "5px",
-  padding: "8px 12px",
-  borderRadius: "8px",
-  border: "none",
+  marginTop: "10px",
+  padding: "10px",
   background: "#333",
-  color: "white"
+  color: "white",
+  border: "none",
+  borderRadius: "8px"
 };
