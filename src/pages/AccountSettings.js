@@ -3,28 +3,28 @@ import React, { useState, useEffect } from "react";
 export default function AccountSettings() {
 
   const defaultSettings = {
-    accuracy: 0.3,
-    shootingSpeed: 0.2,
-    intakeSpeed: 0.2,
+    accuracy: 0.18181818181818182,
+    shootingSpeed: 0.18181818181818182,
+    intakeSpeed: 0.18181818181818182,
     auton: 0.1,
-    climb: 0.1,
+    climb: 0.05,
     awareness: 0.1,
     focus: 0.1,
-    robotType: 0.05,
-    failurePenalty: 0.2,
+    robotType: 0.1,
+    failurePenalty: 0.1,
 
-    autonShoot: 1,
-    autonCollectMiddle: 0.6,
-    autonCollectDepot: 0.5,
-    autonClimb: 0.8,
+    autonShoot: 0.25,
+    autonCollectMiddle: 0.25,
+    autonCollectDepot: 0.25,
+    autonClimb: 0.25,
 
-    focusScoring: 1,
-    focusPassing: 0.6,
-    focusDefense: 0.8,
+    focusScoring: 0.3333333333333333,
+    focusPassing: 0.3333333333333333,
+    focusDefense: 0.3333333333333333,
 
-    failureLostComm: 1,
-    failureLostPower: 1,
-    failureBrokenIntake: 0.6
+    failureLostComm: 0.3333333333333333,
+    failureLostPower: 0.3333333333333333,
+    failureBrokenIntake: 0.3333333333333333
   };
 
   const [settings, setSettings] = useState(defaultSettings);
