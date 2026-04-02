@@ -292,7 +292,7 @@ export default function AccountSettings() {
     
     setSettings(updated);               // update React state
     localStorage.setItem("scoringSettings", JSON.stringify(updated)); // immediately save
-
+  };
 
   const logout = () => {
     localStorage.removeItem("user");
