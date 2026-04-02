@@ -134,8 +134,8 @@ export default function AccountSettings() {
 
   // 🔥 CALIBRATION (AVERAGE TEAM)
   const runCalibration = () => {
-    const input = teamsInput.split(",").map(t => t.trim());
-    if (input.length === 0) return;
+    const input = teamsInput.split(",").map(t => t.trim()).filter(Boolean);
+    if (input.length === 0) return alert("Enter teams");
 
     const teams = input.map(t => t.startsWith("frc") ? t : `frc${t}`);
 
@@ -143,20 +143,128 @@ export default function AccountSettings() {
     const event = localStorage.getItem("selectedEvent");
 
     const filtered = data.filter(d => d.event === event && teams.includes(d.team));
-    if (filtered.length === 0) return alert("No data");
+    if (filtered.length === 0) return alert("No data for those teams");
 
-    const avg = { accuracy:0, shootingSpeed:0, intakeSpeed:0 };
+    // 🔥 BUILD AVERAGE TEAM
+    const avg = {
+      accuracy: 0,
+      shootingSpeed: 0,
+      intakeSpeed: 0,
+      awareness: 0,
+      climb: 0,
+      robotType: 0,
+
+      auton: { shoot: 0, middle: 0, depot: 0, climb: 0 },
+      focus: { scoring: 0, passing: 0, defense: 0 },
+      failures: { comm: 0, power: 0, intake: 0 }
+    };
 
     filtered.forEach(e => {
       avg.accuracy += Number(e.accuracy || 0);
       avg.shootingSpeed += Number(e.shootingSpeed || 0);
       avg.intakeSpeed += Number(e.intakeSpeed || 0);
+
+      if (e.awareness === "Yes") avg.awareness += 1;
+      else if (e.awareness === "Kind of Lost") avg.awareness += 0.5;
+
+      if (e.climb?.includes("L3")) avg.climb += 1;
+      else if (e.climb?.includes("L2")) avg.climb += 0.7;
+      else if (e.climb?.includes("L1")) avg.climb += 0.4;
+
+      if (e.robotType?.includes("Custom")) avg.robotType += 1;
+
+      if (e.auton?.includes("Shoot")) avg.auton.shoot += 1;
+      if (e.auton?.includes("Collect Middle")) avg.auton.middle += 1;
+      if (e.auton?.includes("Collect Depot")) avg.auton.depot += 1;
+      if (e.auton?.includes("Climb")) avg.auton.climb += 1;
+ 
+      if (e.focus?.includes("Scoring")) avg.focus.scoring += 1;
+      if (e.focus?.includes("Passing / Moving Balls")) avg.focus.passing += 1;
+      if (e.focus?.includes("Defense")) avg.focus.defense += 1;
+
+      if (e.failures?.includes("Lost Communication")) avg.failures.comm += 1;
+      if (e.failures?.includes("Lost Power")) avg.failures.power += 1;
+      if (e.failures?.includes("Broken Intake")) avg.failures.intake += 1;
     });
 
     const count = filtered.length;
-    avg.accuracy /= count;
-    avg.shootingSpeed /= count;
-    avg.intakeSpeed /= count;
+    const safe = v => v / count;
+
+    avg.accuracy = safe(avg.accuracy);
+    avg.shootingSpeed = safe(avg.shootingSpeed);
+    avg.intakeSpeed = safe(avg.intakeSpeed);
+    avg.awareness = safe(avg.awareness);
+    avg.climb = safe(avg.climb);
+    avg.robotType = safe(avg.robotType);
+
+    Object.keys(avg.auton).forEach(k => avg.auton[k] = safe(avg.auton[k]));
+    Object.keys(avg.focus).forEach(k => avg.focus[k] = safe(avg.focus[k]));
+    Object.keys(avg.failures).forEach(k => avg.failures[k] = safe(avg.failures[k]));
+
+    // 🔥 CONVERT AVG TEAM → SCORING SPACE (same as dashboard)
+    const norm = {
+      accuracy: (avg.accuracy - 1) / 4,
+      shootingSpeed: (avg.shootingSpeed - 1) / 4,
+      intakeSpeed: (avg.intakeSpeed - 1) / 4,
+
+      awareness: avg.awareness,
+      climb: avg.climb,
+      robotType: avg.robotType,
+
+      auton:
+        avg.auton.shoot * settings.autonShoot +
+        avg.auton.middle * settings.autonCollectMiddle +
+        avg.auton.depot * settings.autonCollectDepot +
+        avg.auton.climb * settings.autonClimb,
+
+      focus:
+        avg.focus.scoring * settings.focusScoring +
+        avg.focus.passing * settings.focusPassing +
+        avg.focus.defense * settings.focusDefense,
+
+      failures:
+        avg.failures.comm * settings.failureLostComm +
+        avg.failures.power * settings.failureLostPower +
+        avg.failures.intake * settings.failureBrokenIntake
+    };
+
+    // 🔥 CURRENT SCORE OF AVG TEAM
+    let score =
+      norm.accuracy * settings.accuracy +
+      norm.shootingSpeed * settings.shootingSpeed +
+      norm.intakeSpeed * settings.intakeSpeed +
+      norm.awareness * settings.awareness +
+      norm.climb * settings.climb +
+      norm.auton * settings.auton +
+      norm.focus * settings.focus +
+      norm.robotType * settings.robotType -
+      norm.failures * settings.failurePenalty;
+
+    if (score <= 0) return alert("Calibration failed (score <= 0)");
+
+    // 🔥 SCALE EVERYTHING SO AVG = 1
+    const scale = 1 / score;
+
+    let updated = { ...settings };
+
+    Object.keys(updated).forEach(k => {
+      updated[k] = updated[k] * scale;
+    });
+
+    // 🔥 RE-NORMALIZE GROUPS (keep structure clean)
+    const normalize = (fields) => {
+      const total = fields.reduce((sum, f) => sum + updated[f], 0);
+      if (total === 0) return;
+      fields.forEach(f => updated[f] /= total);
+    };
+
+    normalize(["accuracy","shootingSpeed","intakeSpeed","auton","climb","awareness","focus","robotType"]);
+    normalize(["autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"]);
+    normalize(["focusScoring","focusPassing","focusDefense"]);
+    normalize(["failureLostComm","failureLostPower","failureBrokenIntake"]);
+
+    setSettings(updated);
+};
 
     // 🔥 INVERT → weaker = higher weight
     const invert = v => 1 - (v / 5);
