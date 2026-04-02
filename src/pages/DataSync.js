@@ -10,12 +10,12 @@ export default function DataSync() {
   const [scanning, setScanning] = useState(false);
   const [received, setReceived] = useState({});
 
-  // 🔥 COMPRESS + CLEAN DATA
+  // 📤 GENERATE QR
   const handleGenerateQR = () => {
 
     const rawData = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-    // ✅ 1. CLEAN + SHORTEN KEYS
+    // 🔥 CLEAN + SHORT KEYS
     const cleaned = rawData.map(e => ({
       t: e.team,
       m: e.matchNumber,
@@ -28,12 +28,11 @@ export default function DataSync() {
 
     const json = JSON.stringify(cleaned);
 
-    // ✅ 2. COMPRESS (GZIP)
+    // 🔥 COMPRESS
     const compressed = btoa(
       String.fromCharCode(...pako.deflate(json))
     );
 
-    // ✅ 3. LARGER CHUNK SIZE
     const CHUNK_SIZE = 1200;
 
     const parts = [];
@@ -41,7 +40,6 @@ export default function DataSync() {
       parts.push(compressed.slice(i, i + CHUNK_SIZE));
     }
 
-    // ✅ 4. MINIMIZED METADATA
     const wrapped = parts.map((chunk, index) => JSON.stringify({
       i: index,
       t: parts.length,
@@ -52,21 +50,18 @@ export default function DataSync() {
     setCurrentChunk(0);
   };
 
-  // ➡️ NEXT QR
   const nextQR = () => {
     if (currentChunk < chunks.length - 1) {
       setCurrentChunk(currentChunk + 1);
     }
   };
 
-  // ⬅️ PREV QR
   const prevQR = () => {
     if (currentChunk > 0) {
       setCurrentChunk(currentChunk - 1);
     }
   };
 
-  // 📥 START SCANNER
   const startScanner = () => {
     setScanning(true);
   };
@@ -93,7 +88,6 @@ export default function DataSync() {
             const updated = { ...prev, [parsed.i]: parsed.d };
             const total = parsed.t;
 
-            // ✅ COMPLETE
             if (Object.keys(updated).length === total) {
 
               // 🔗 REASSEMBLE
@@ -110,13 +104,25 @@ export default function DataSync() {
 
               const decompressed = pako.inflate(binary, { to: "string" });
 
-              const imported = JSON.parse(decompressed);
+              const importedShort = JSON.parse(decompressed);
+
+              // ✅ 🔥 FIX: EXPAND BACK TO FULL FORMAT
+              const imported = importedShort.map(e => ({
+                team: e.t,
+                matchNumber: e.m,
+                auton: e.a,
+                accuracy: e.ac,
+                climb: e.c,
+                movement: e.mv,
+                intake: e.i
+              }));
+
               const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-              // ✅ MERGE (avoid duplicates)
+              // 🔥 MERGE WITHOUT DUPES
               const map = {};
               [...existing, ...imported].forEach(entry => {
-                const key = `${entry.t}-${entry.m}`;
+                const key = `${entry.team}-${entry.matchNumber}`;
                 map[key] = entry;
               });
 
@@ -126,9 +132,10 @@ export default function DataSync() {
 
               alert("Full dataset merged!");
 
-              html5QrCode.stop();
-              setScanning(false);
-              setReceived({});
+              html5QrCode.stop().then(() => {
+                setScanning(false);
+                setReceived({});
+              });
             }
 
             return updated;
@@ -151,7 +158,6 @@ export default function DataSync() {
     <div style={{ padding: "20px", color: "white" }}>
       <h1>QR Sync (Optimized)</h1>
 
-      {/* EXPORT */}
       <button
         onClick={handleGenerateQR}
         style={{ width: "100%", padding: "15px", marginBottom: "15px" }}
@@ -165,12 +171,11 @@ export default function DataSync() {
 
           <p>{currentChunk + 1} / {chunks.length}</p>
 
-          <button onClick={prevQR} style={{ margin: "5px" }}>⬅️</button>
-          <button onClick={nextQR} style={{ margin: "5px" }}>➡️</button>
+          <button onClick={prevQR}>⬅️</button>
+          <button onClick={nextQR}>➡️</button>
         </div>
       )}
 
-      {/* IMPORT */}
       {!scanning && (
         <button
           onClick={startScanner}
