@@ -243,16 +243,21 @@ export default function AccountSettings() {
 
     if (score <= 0) return alert("Calibration failed (score <= 0)");
 
-    // 🔥 SCALE EVERYTHING SO AVG = 1
-    const scale = 1 / score;
-  
+
     let updated = { ...settings };
 
-    Object.keys(updated).forEach(k => {
-      if (k !== "failurePenalty") {
-        updated[k] = updated[k] * scale;
-      }
-    });
+    // 🔥 adjust weights based on contribution
+    updated.accuracy *= (1 - norm.accuracy);
+    updated.shootingSpeed *= (1 - norm.shootingSpeed);
+    updated.intakeSpeed *= (1 - norm.intakeSpeed);
+    updated.awareness *= (1 - norm.awareness);
+    updated.climb *= (1 - norm.climb);
+    updated.auton *= (1 - norm.auton);
+    updated.focus *= (1 - norm.focus);
+    updated.robotType *= (1 - norm.robotType);
+
+    // failures = opposite (more failures = more weight)
+    updated.failurePenalty *= (1 + norm.failures);
 
     // 🔥 RE-NORMALIZE GROUPS (keep structure clean)
     const normalize = (fields) => {
