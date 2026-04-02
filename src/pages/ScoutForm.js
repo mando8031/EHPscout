@@ -278,6 +278,7 @@ export default function ScoutForm() {
                 robotType: [opt]
               }))
             }
+          >
             {opt}
           </button>
         ))}
