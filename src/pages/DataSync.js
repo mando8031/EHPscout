@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
-import LZString from "lz-string";
+import pako from "pako";
 
 export default function DataSync() {
 
@@ -10,21 +10,38 @@ export default function DataSync() {
   const [scanning, setScanning] = useState(false);
   const [received, setReceived] = useState({});
 
-  // 📤 GENERATE COMPRESSED QR DATA
+  // 🔥 COMPRESS + CLEAN DATA
   const handleGenerateQR = () => {
 
-    const raw = localStorage.getItem("scoutingData") || "[]";
+    const rawData = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-    // 🔥 COMPRESS
-    const compressed = LZString.compressToEncodedURIComponent(raw);
+    // ✅ 1. CLEAN + SHORTEN KEYS
+    const cleaned = rawData.map(e => ({
+      t: e.team,
+      m: e.matchNumber,
+      a: e.auton,
+      ac: e.accuracy,
+      c: e.climb,
+      mv: e.movement,
+      i: e.intake
+    }));
 
-    const CHUNK_SIZE = 1000; // bigger now because compressed
+    const json = JSON.stringify(cleaned);
+
+    // ✅ 2. COMPRESS (GZIP)
+    const compressed = btoa(
+      String.fromCharCode(...pako.deflate(json))
+    );
+
+    // ✅ 3. LARGER CHUNK SIZE
+    const CHUNK_SIZE = 1200;
 
     const parts = [];
     for (let i = 0; i < compressed.length; i += CHUNK_SIZE) {
       parts.push(compressed.slice(i, i + CHUNK_SIZE));
     }
 
+    // ✅ 4. MINIMIZED METADATA
     const wrapped = parts.map((chunk, index) => JSON.stringify({
       i: index,
       t: parts.length,
@@ -86,14 +103,21 @@ export default function DataSync() {
                 .join("");
 
               // 🔥 DECOMPRESS
-              const fullString = LZString.decompressFromEncodedURIComponent(compressedFull);
+              const binary = Uint8Array.from(
+                atob(compressedFull),
+                c => c.charCodeAt(0)
+              );
 
-              const imported = JSON.parse(fullString);
+              const decompressed = pako.inflate(binary, { to: "string" });
+
+              const imported = JSON.parse(decompressed);
               const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
+              // ✅ MERGE (avoid duplicates)
               const map = {};
               [...existing, ...imported].forEach(entry => {
-                map[entry.id] = entry;
+                const key = `${entry.t}-${entry.m}`;
+                map[key] = entry;
               });
 
               const merged = Object.values(map);
@@ -111,7 +135,7 @@ export default function DataSync() {
           });
 
         } catch (err) {
-          console.error(err);
+          console.error("Scan error:", err);
         }
       },
       () => {}
@@ -125,8 +149,9 @@ export default function DataSync() {
 
   return (
     <div style={{ padding: "20px", color: "white" }}>
-      <h1>QR Sync (Compressed)</h1>
+      <h1>QR Sync (Optimized)</h1>
 
+      {/* EXPORT */}
       <button
         onClick={handleGenerateQR}
         style={{ width: "100%", padding: "15px", marginBottom: "15px" }}
@@ -140,11 +165,12 @@ export default function DataSync() {
 
           <p>{currentChunk + 1} / {chunks.length}</p>
 
-          <button onClick={prevQR}>⬅️</button>
-          <button onClick={nextQR}>➡️</button>
+          <button onClick={prevQR} style={{ margin: "5px" }}>⬅️</button>
+          <button onClick={nextQR} style={{ margin: "5px" }}>➡️</button>
         </div>
       )}
 
+      {/* IMPORT */}
       {!scanning && (
         <button
           onClick={startScanner}
