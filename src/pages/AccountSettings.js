@@ -244,37 +244,37 @@ export default function AccountSettings() {
     if (score <= 0) return alert("Calibration failed (score <= 0)");
 
 
-    let updated = { ...settings };
+    let updated = {};
 
     // 🔥 boost what the average team is GOOD at
-    // MAIN
-    updated.accuracy *= (norm.accuracy + 0.01);
-    updated.shootingSpeed *= (norm.shootingSpeed + 0.01);
-    updated.intakeSpeed *= (norm.intakeSpeed + 0.01);
-    updated.awareness *= (norm.awareness + 0.01);
-    updated.climb *= (norm.climb + 0.01);
-    updated.auton *= (norm.auton + 0.01);
-    updated.focus *= (norm.focus + 0.01);
-    updated.robotType *= (norm.robotType + 0.01);
+    // MAIN (direct mapping from avg → weights)
+    updated.accuracy = norm.accuracy + 0.01;
+    updated.shootingSpeed = norm.shootingSpeed + 0.01;
+    updated.intakeSpeed = norm.intakeSpeed + 0.01;
+    updated.awareness = norm.awareness + 0.01;
+    updated.climb = norm.climb + 0.01;
+    updated.auton = norm.auton + 0.01;
+    updated.focus = norm.focus + 0.01;
+    updated.robotType = norm.robotType + 0.01;
 
-    // 🔥 AUTON SUBCATEGORY ADJUSTMENT
-    updated.autonShoot *= (avg.auton.shoot + 0.01);
-    updated.autonCollectMiddle *= (avg.auton.middle + 0.01);
-    updated.autonCollectDepot *= (avg.auton.depot + 0.01);
-    updated.autonClimb *= (avg.auton.climb + 0.01);
+    // AUTON
+    updated.autonShoot = avg.auton.shoot + 0.01;
+    updated.autonCollectMiddle = avg.auton.middle + 0.01;
+    updated.autonCollectDepot = avg.auton.depot + 0.01;
+    updated.autonClimb = avg.auton.climb + 0.01;
 
-    // 🔥 FOCUS SUBCATEGORY ADJUSTMENT
-    updated.focusScoring *= (avg.focus.scoring + 0.01);
-    updated.focusPassing *= (avg.focus.passing + 0.01);
-    updated.focusDefense *= (avg.focus.defense + 0.01);
- 
-    // 🔥 FAILURE SUBCATEGORY ADJUSTMENT
-    updated.failureLostComm *= (avg.failures.comm + 0.01);
-    updated.failureLostPower *= (avg.failures.power + 0.01);
-    updated.failureBrokenIntake *= (avg.failures.intake + 0.01);
+    // FOCUS
+    updated.focusScoring = avg.focus.scoring + 0.01;
+    updated.focusPassing = avg.focus.passing + 0.01;
+    updated.focusDefense = avg.focus.defense + 0.01;
 
-    // failures = opposite (more failures = more weight)
-    updated.failurePenalty *= (1 + norm.failures);
+    // FAILURES
+    updated.failureLostComm = avg.failures.comm + 0.01;
+    updated.failureLostPower = avg.failures.power + 0.01;
+    updated.failureBrokenIntake = avg.failures.intake + 0.01;
+
+    // failures (more failures = more penalty weight)
+    updated.failurePenalty = norm.failures + 0.01;
 
     // 🔥 RE-NORMALIZE GROUPS (keep structure clean)
     const normalize = (fields) => {
