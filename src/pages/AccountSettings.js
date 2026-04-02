@@ -260,6 +260,9 @@ export default function AccountSettings() {
     updated.failureLostPower = (1 - avg.failures.power) + 0.01;
     updated.failureBrokenIntake = (1 - avg.failures.intake) + 0.01;
 
+    //Keep value the same as before 
+    updated.failurePenalty = settings.failurePenalty;
+    
     // 🔥 RE-NORMALIZE GROUPS (keep structure clean)
     const normalize = (fields) => {
       const total = fields.reduce((sum, f) => sum + updated[f], 0);
