@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
 import pako from "pako";
@@ -10,8 +10,11 @@ export default function DataSync() {
   const [scanning, setScanning] = useState(false);
   const [received, setReceived] = useState({});
 
-  const handleGenerateQR = () => {
+  const scannerRef = useRef(null);
+  const isStoppingRef = useRef(false);
 
+  // 📤 GENERATE QR
+  const handleGenerateQR = () => {
     const rawData = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
     const cleaned = rawData.map(e => ({
@@ -43,8 +46,6 @@ export default function DataSync() {
       d: chunk
     }));
 
-    console.log("Generated chunks:", wrapped.length);
-
     setChunks(wrapped);
     setCurrentChunk(0);
   };
@@ -57,17 +58,15 @@ export default function DataSync() {
     if (!scanning) return;
 
     const html5QrCode = new Html5Qrcode("reader");
+    scannerRef.current = html5QrCode;
 
     html5QrCode.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       (decodedText) => {
 
-        console.log("Scanned chunk:", decodedText);
-
         try {
           const parsed = JSON.parse(decodedText);
-
           if (parsed.i === undefined) return;
 
           setReceived(prev => {
@@ -77,20 +76,14 @@ export default function DataSync() {
             const updated = { ...prev, [parsed.i]: parsed.d };
             const total = parsed.t;
 
-            console.log("Chunks received:", Object.keys(updated).length, "/", total);
-
             if (Object.keys(updated).length === total) {
 
               try {
-                // 🔗 REASSEMBLE
                 const compressedFull = Object.keys(updated)
                   .sort((a, b) => a - b)
                   .map(i => updated[i])
                   .join("");
 
-                console.log("Reassembled length:", compressedFull.length);
-
-                // 🔥 DECOMPRESS
                 const binary = Uint8Array.from(
                   atob(compressedFull),
                   c => c.charCodeAt(0)
@@ -98,74 +91,81 @@ export default function DataSync() {
 
                 const decompressed = pako.inflate(binary, { to: "string" });
 
-                console.log("Decompressed string:", decompressed);
-
                 const importedShort = JSON.parse(decompressed);
 
-                if (!Array.isArray(importedShort)) {
-                  throw new Error("Imported data is not an array");
-                }
-
-                // ✅ SAFE EXPAND
                 const imported = importedShort.map(e => ({
-                  team: e.t ?? null,
-                  matchNumber: e.m ?? null,
-                  auton: e.a ?? 0,
-                  accuracy: e.ac ?? 0,
-                  climb: e.c ?? "none",
-                  movement: e.mv ?? 0,
-                  intake: e.i ?? 0
+                  team: e.t,
+                  matchNumber: e.m,
+                  auton: e.a,
+                  accuracy: e.ac,
+                  climb: e.c,
+                  movement: e.mv,
+                  intake: e.i
                 }));
-
-                console.log("Expanded data:", imported);
 
                 const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
                 const map = {};
                 [...existing, ...imported].forEach(entry => {
-                  if (!entry.team || !entry.matchNumber) return;
-
                   const key = `${entry.team}-${entry.matchNumber}`;
                   map[key] = entry;
                 });
 
-                const merged = Object.values(map);
+                localStorage.setItem("scoutingData", JSON.stringify(Object.values(map)));
 
-                console.log("Final merged data:", merged);
+                alert("Data imported!");
 
-                localStorage.setItem("scoutingData", JSON.stringify(merged));
-
-                alert("Data imported successfully!");
-
-                html5QrCode.stop();
-                setScanning(false);
-                setReceived({});
-
-              } catch (innerErr) {
-                console.error("FINAL PROCESSING ERROR:", innerErr);
-                alert("Import failed — check console");
+              } catch (err) {
+                console.error("Processing error:", err);
               }
+
+              // ✅ SAFE STOP
+              safeStopScanner();
             }
 
             return updated;
           });
 
         } catch (err) {
-          console.error("SCAN ERROR:", err);
+          console.error("Scan error:", err);
         }
-      },
-      () => {}
+      }
     );
 
     return () => {
-      html5QrCode.stop().catch(() => {});
+      safeStopScanner();
     };
 
   }, [scanning]);
 
+  // 🔥 SAFE STOP FUNCTION
+  const safeStopScanner = () => {
+
+    if (isStoppingRef.current) return;
+
+    isStoppingRef.current = true;
+
+    const scanner = scannerRef.current;
+
+    if (!scanner) return;
+
+    scanner.stop()
+      .then(() => {
+        scanner.clear();
+        setScanning(false);
+        setReceived({});
+      })
+      .catch(() => {
+        // Ignore stop errors completely
+      })
+      .finally(() => {
+        isStoppingRef.current = false;
+      });
+  };
+
   return (
     <div style={{ padding: "20px", color: "white" }}>
-      <h1>QR Sync (Debug Mode)</h1>
+      <h1>QR Sync</h1>
 
       <button onClick={handleGenerateQR} style={{ width: "100%", padding: "15px" }}>
         Generate QR
