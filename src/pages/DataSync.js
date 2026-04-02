@@ -10,12 +10,10 @@ export default function DataSync() {
   const [scanning, setScanning] = useState(false);
   const [received, setReceived] = useState({});
 
-  // 📤 GENERATE QR
   const handleGenerateQR = () => {
 
     const rawData = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-    // 🔥 CLEAN + SHORT KEYS
     const cleaned = rawData.map(e => ({
       t: e.team,
       m: e.matchNumber,
@@ -28,7 +26,6 @@ export default function DataSync() {
 
     const json = JSON.stringify(cleaned);
 
-    // 🔥 COMPRESS
     const compressed = btoa(
       String.fromCharCode(...pako.deflate(json))
     );
@@ -46,20 +43,10 @@ export default function DataSync() {
       d: chunk
     }));
 
+    console.log("Generated chunks:", wrapped.length);
+
     setChunks(wrapped);
     setCurrentChunk(0);
-  };
-
-  const nextQR = () => {
-    if (currentChunk < chunks.length - 1) {
-      setCurrentChunk(currentChunk + 1);
-    }
-  };
-
-  const prevQR = () => {
-    if (currentChunk > 0) {
-      setCurrentChunk(currentChunk - 1);
-    }
   };
 
   const startScanner = () => {
@@ -76,6 +63,8 @@ export default function DataSync() {
       { fps: 10, qrbox: 250 },
       (decodedText) => {
 
+        console.log("Scanned chunk:", decodedText);
+
         try {
           const parsed = JSON.parse(decodedText);
 
@@ -88,61 +77,81 @@ export default function DataSync() {
             const updated = { ...prev, [parsed.i]: parsed.d };
             const total = parsed.t;
 
+            console.log("Chunks received:", Object.keys(updated).length, "/", total);
+
             if (Object.keys(updated).length === total) {
 
-              // 🔗 REASSEMBLE
-              const compressedFull = Object.keys(updated)
-                .sort((a, b) => a - b)
-                .map(i => updated[i])
-                .join("");
+              try {
+                // 🔗 REASSEMBLE
+                const compressedFull = Object.keys(updated)
+                  .sort((a, b) => a - b)
+                  .map(i => updated[i])
+                  .join("");
 
-              // 🔥 DECOMPRESS
-              const binary = Uint8Array.from(
-                atob(compressedFull),
-                c => c.charCodeAt(0)
-              );
+                console.log("Reassembled length:", compressedFull.length);
 
-              const decompressed = pako.inflate(binary, { to: "string" });
+                // 🔥 DECOMPRESS
+                const binary = Uint8Array.from(
+                  atob(compressedFull),
+                  c => c.charCodeAt(0)
+                );
 
-              const importedShort = JSON.parse(decompressed);
+                const decompressed = pako.inflate(binary, { to: "string" });
 
-              // ✅ 🔥 FIX: EXPAND BACK TO FULL FORMAT
-              const imported = importedShort.map(e => ({
-                team: e.t,
-                matchNumber: e.m,
-                auton: e.a,
-                accuracy: e.ac,
-                climb: e.c,
-                movement: e.mv,
-                intake: e.i
-              }));
+                console.log("Decompressed string:", decompressed);
 
-              const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
+                const importedShort = JSON.parse(decompressed);
 
-              // 🔥 MERGE WITHOUT DUPES
-              const map = {};
-              [...existing, ...imported].forEach(entry => {
-                const key = `${entry.team}-${entry.matchNumber}`;
-                map[key] = entry;
-              });
+                if (!Array.isArray(importedShort)) {
+                  throw new Error("Imported data is not an array");
+                }
 
-              const merged = Object.values(map);
+                // ✅ SAFE EXPAND
+                const imported = importedShort.map(e => ({
+                  team: e.t ?? null,
+                  matchNumber: e.m ?? null,
+                  auton: e.a ?? 0,
+                  accuracy: e.ac ?? 0,
+                  climb: e.c ?? "none",
+                  movement: e.mv ?? 0,
+                  intake: e.i ?? 0
+                }));
 
-              localStorage.setItem("scoutingData", JSON.stringify(merged));
+                console.log("Expanded data:", imported);
 
-              alert("Full dataset merged!");
+                const existing = JSON.parse(localStorage.getItem("scoutingData") || "[]");
 
-              html5QrCode.stop().then(() => {
+                const map = {};
+                [...existing, ...imported].forEach(entry => {
+                  if (!entry.team || !entry.matchNumber) return;
+
+                  const key = `${entry.team}-${entry.matchNumber}`;
+                  map[key] = entry;
+                });
+
+                const merged = Object.values(map);
+
+                console.log("Final merged data:", merged);
+
+                localStorage.setItem("scoutingData", JSON.stringify(merged));
+
+                alert("Data imported successfully!");
+
+                html5QrCode.stop();
                 setScanning(false);
                 setReceived({});
-              });
+
+              } catch (innerErr) {
+                console.error("FINAL PROCESSING ERROR:", innerErr);
+                alert("Import failed — check console");
+              }
             }
 
             return updated;
           });
 
         } catch (err) {
-          console.error("Scan error:", err);
+          console.error("SCAN ERROR:", err);
         }
       },
       () => {}
@@ -156,31 +165,21 @@ export default function DataSync() {
 
   return (
     <div style={{ padding: "20px", color: "white" }}>
-      <h1>QR Sync (Optimized)</h1>
+      <h1>QR Sync (Debug Mode)</h1>
 
-      <button
-        onClick={handleGenerateQR}
-        style={{ width: "100%", padding: "15px", marginBottom: "15px" }}
-      >
+      <button onClick={handleGenerateQR} style={{ width: "100%", padding: "15px" }}>
         Generate QR
       </button>
 
       {chunks.length > 0 && (
         <div style={{ textAlign: "center" }}>
           <QRCode value={chunks[currentChunk]} size={250} />
-
           <p>{currentChunk + 1} / {chunks.length}</p>
-
-          <button onClick={prevQR}>⬅️</button>
-          <button onClick={nextQR}>➡️</button>
         </div>
       )}
 
       {!scanning && (
-        <button
-          onClick={startScanner}
-          style={{ width: "100%", padding: "15px", marginTop: "20px" }}
-        >
+        <button onClick={startScanner} style={{ width: "100%", padding: "15px", marginTop: "20px" }}>
           Scan QR
         </button>
       )}
@@ -188,7 +187,7 @@ export default function DataSync() {
       {scanning && (
         <div>
           <div id="reader" style={{ marginTop: "20px" }} />
-          <p>Scanned: {Object.keys(received).length}</p>
+          <p>Chunks: {Object.keys(received).length}</p>
         </div>
       )}
     </div>
