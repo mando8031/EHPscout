@@ -249,7 +249,9 @@ export default function AccountSettings() {
     let updated = { ...settings };
 
     Object.keys(updated).forEach(k => {
-      updated[k] = updated[k] * scale;
+      if (k !== "failurePenalty") {
+        updated[k] = updated[k] * scale;
+      }
     });
 
     // 🔥 RE-NORMALIZE GROUPS (keep structure clean)
