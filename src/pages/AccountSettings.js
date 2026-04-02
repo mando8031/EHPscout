@@ -259,18 +259,7 @@ export default function AccountSettings() {
       fields.forEach(f => updated[f] /= total);
     };
 
-    normalize(["accuracy","shootingSpeed","intakeSpeed","auton","climb","awareness","focus","robotType"]);
-    normalize(["autonShoot","autonCollectMiddle","autonCollectDepot","autonClimb"]);
-    normalize(["focusScoring","focusPassing","focusDefense"]);
-    normalize(["failureLostComm","failureLostPower","failureBrokenIntake"]);
-
     // normalize ALL groups so sliders visibly change
-
-    const normalize = (fields) => {
-      const total = fields.reduce((sum, f) => sum + updated[f], 0);
-      if (total === 0) return;
-      fields.forEach(f => updated[f] /= total);
-    };
 
     // MAIN
     normalize([
